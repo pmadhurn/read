@@ -432,7 +432,14 @@ export async function render(root, { params, query }) {
     if (prefetching) return; prefetching = true;
     try {
       const order = book.chapters.map((c) => c.ord).sort((a, b) => Math.abs(a - ch.ord - 0.4) - Math.abs(b - ch.ord - 0.4));
-      for (const ord of order) { if (dead) return; if (!chapters.has(ord)) { await loadChapter(ord).catch(() => {}); await new Promise((r) => setTimeout(r, 150)); } }
+      for (const ord of order) {
+        if (dead) return;
+        if (chapters.has(ord)) continue;
+        // While words are flashing only the next chapter is fetched; the rest waits for a pause.
+        while (playing && ord !== ch.ord + 1 && !dead) await new Promise((r) => setTimeout(r, 1000));
+        await loadChapter(ord).catch(() => {});
+        await new Promise((r) => setTimeout(r, 150));
+      }
     } finally { prefetching = false; }
   }
 
