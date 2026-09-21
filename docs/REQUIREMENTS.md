@@ -18,7 +18,7 @@ site through Cloudflare (38 checks), `LOGIC` = `tests/logic.py` (14 checks), `E2
 | NF-3 | 50 MB PDF in 60 s not measured. A 500,000-word TXT processes in 1 s. |
 | NF-2 | 200 books render in ~0.5 s under Chromium's emulated 4G on the server itself; not measured on a real phone network. |
 | NF-10 | Keyboard control, focus rings, labels and theme contrast were designed to WCAG AA; no screen-reader or automated contrast audit was run. |
-| SP-6 | Measured in headless Chromium at 1000 WPM: mean 0.1–0.5 ms late, p99 under 4 ms. On a heavily loaded machine an isolated word can still slip further. |
+| SP-6 | Partly met. Deadlines are absolute, so lateness never accumulates and average speed is exact. Measured in headless Chromium on the server at 1000 WPM over 667 words: mean under 1 ms late, 99% of words within 5 ms, but about 1% slip 6–30 ms when the browser's main thread stalls (layout, GC), plus the first two words after pressing play. A strict ±5 ms on every word is not something a browser tab can guarantee. |
 | GM-10 | Everyone starts at level 1, so level *n*+1 needs 100 × *n*² XP. |
 | §7 / NV-7 | Normal (scrolling) mode saves position but earns no words or XP: only words flashed while playing count, as the spec says. |
 | NF-13 / NF-6 | The compose proxy speaks plain HTTP; HTTPS terminates at the Cloudflare tunnel in front of it. |
@@ -74,7 +74,7 @@ site through Cloudflare (38 checks), `LOGIC` = `tests/logic.py` (14 checks), `E2
 | SP-3 punctuation pauses ×1.5 / ×2 / ×3 with strength | done | CODE |
 | SP-4 longer for long words and numbers | done | CODE |
 | SP-5 ramp-up from 60% over 2 s | done | CODE |
-| SP-6 ±5 ms at 1000 WPM | done | E2E (see above) |
+| SP-6 ±5 ms at 1000 WPM | partly | E2E (see above) |
 | NV-1 word / sentence / chapter steps | done | E2E |
 | NV-2 keyboard map | done | E2E |
 | NV-3 tap centre, tap edges, swipe for speed | done | CODE |

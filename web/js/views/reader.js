@@ -176,7 +176,8 @@ export async function render(root, { params, query }) {
   // ---------------------------------------------------------------- precise scheduling (SP-6)
   // Absolute deadlines: each word is due at the previous deadline plus its own
   // duration, so timer lateness never accumulates. setTimeout gets us close, then
-  // a MessageChannel spin lands within a millisecond or two of the deadline.
+  // a MessageChannel spin covers the last ~18 ms, because a busy browser can fire a
+  // timer 10 ms late, and lands within a millisecond or two of the deadline.
   const channel = new MessageChannel();
   channel.port1.onmessage = () => spin();
   function spin() {
@@ -184,7 +185,7 @@ export async function render(root, { params, query }) {
     if (performance.now() >= due) advance(); else channel.port2.postMessage(0);
   }
   function schedule() {
-    timer = setTimeout(spin, Math.max(0, due - performance.now() - 8));
+    timer = setTimeout(spin, Math.max(0, due - performance.now() - 18));
   }
   function present() {
     const now = performance.now();
