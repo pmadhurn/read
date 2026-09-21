@@ -1,0 +1,55 @@
+// Admin functions, all behind the PIN (section 9).
+import { api } from '../api.js';
+import { h, clear, num, bytes, confirmBox, promptBox, toast } from '../ui.js';
+import { state, go, ensureAdmin } from '../app.js';
+
+export async function render(root) {
+  if (!await ensureAdmin()) { go('#/settings'); return; }
+  const [o, rules] = await Promise.all([api('/admin/overview'), api('/admin/rules')]);
+  const reload = () => render(clear(root));
+  const used = o.files_bytes + o.db_bytes;
+
+  const profiles = h('div', { class: 'table-wrap' }, h('table', null, h('thead', null, h('tr', null, h('th', null, 'Profile'), h('th', { class: 'num' }, 'XP'), h('th', { class: 'num' }, 'Streak'), h('th', null, 'Actions'))),
+    h('tbody', null, o.profiles.map((p) => h('tr', null, h('td', null, `${p.avatar} ${p.name}`, p.hidden ? h('span', { class: 'pill' }, 'hidden') : null), h('td', { class: 'num' }, num(p.xp)), h('td', { class: 'num' }, p.streak),
+      h('td', null, h('div', { class: 'row' },
+        h('button', { class: 'btn sm', onClick: async () => { const name = await promptBox('Rename profile', { label: 'Name', value: p.name }); if (name) { await api(`/admin/profiles/${p.id}`, { method: 'PATCH', body: { name } }); reload(); } } }, 'Rename'),
+        h('button', { class: 'btn sm danger', onClick: async () => { if (await confirmBox(`Reset ${p.name}?`, 'Progress, XP, streaks, badges and history are wiped. The profile itself stays.', { danger: true, ok: 'Reset' })) { await api(`/admin/profiles/${p.id}/reset`, { method: 'POST' }); toast('Profile reset'); reload(); } } }, 'Reset'),
+        h('button', { class: 'btn sm danger', onClick: async () => { if (await confirmBox(`Delete ${p.name}?`, 'The profile and all of its history are removed for good. Books they uploaded stay.', { danger: true, ok: 'Delete' })) { await api(`/admin/profiles/${p.id}`, { method: 'DELETE' }); toast('Profile deleted'); if (p.id === state.me.id) { localStorage.removeItem('read.profile'); location.hash = ''; location.reload(); } else reload(); } } }, 'Delete'))))))));
+
+  const passcode = h('input', { type: 'text', autocomplete: 'off', placeholder: 'New family passcode (6+ characters)' });
+  const pin = h('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', placeholder: 'New admin PIN (4–12 digits)' });
+  const secrets = h('form', { class: 'stack', onSubmit: async (e) => {
+    e.preventDefault();
+    if (!passcode.value && !pin.value) return;
+    if (!await confirmBox('Change access codes?', 'Every remembered device, including this one, is signed out and must enter the passcode again.', { ok: 'Change' })) return;
+    await api('/admin/secrets', { method: 'POST', body: { passcode: passcode.value, pin: pin.value } }); location.reload();
+  } }, h('label', { class: 'field' }, h('span', null, 'Family passcode'), passcode), h('label', { class: 'field' }, h('span', null, 'Admin PIN'), pin), h('div', null, h('button', { class: 'btn primary' }, 'Save new codes')));
+
+  const XP_LABELS = { words_per_xp: 'Words per 1 XP', goal_bonus: 'Daily goal bonus', chapter_bonus: 'Chapter finished bonus', book_bonus: 'Book finished bonus', streak7_multiplier: '7-day streak multiplier', streak30_multiplier: '30-day streak multiplier' };
+  const xpInputs = {}, badgeInputs = {};
+  const rulesForm = h('form', { class: 'stack', onSubmit: async (e) => {
+    e.preventDefault();
+    await api('/admin/rules', { method: 'PUT', body: { xp: Object.fromEntries(Object.entries(xpInputs).map(([k, el]) => [k, Number(el.value)])), badges: Object.fromEntries(Object.entries(badgeInputs).map(([k, el]) => [k, Number(el.value)])) } });
+    toast('Rules saved');
+  } },
+    h('div', { class: 'grid cols-3' }, Object.entries(XP_LABELS).map(([k, label]) => h('label', { class: 'field' }, h('span', null, label), xpInputs[k] = h('input', { type: 'number', step: 'any', min: 0.01, value: rules.xp[k] })))),
+    h('h3', null, 'Badge thresholds'),
+    h('div', { class: 'grid cols-3' }, rules.badges.map((b) => h('label', { class: 'field' }, h('span', null, `${b.icon} ${b.name}`), badgeInputs[b.id] = h('input', { type: 'number', step: 'any', min: 1, value: b.threshold })))),
+    h('div', null, h('button', { class: 'btn primary' }, 'Save rules')));
+
+  root.append(h('div', { class: 'page-head' }, h('h1', null, 'Admin'),
+    h('button', { class: 'btn', onClick: async () => { await api('/access/admin/logout', { method: 'POST' }); state.admin = false; go('#/settings'); } }, 'Lock admin')),
+    h('div', { class: 'stack' },
+      h('section', { class: 'card' }, h('h2', null, 'Storage'),
+        h('div', { class: 'grid cols-4' }, h('div', { class: 'stat' }, h('b', null, o.books), h('span', null, 'Books')), h('div', { class: 'stat' }, h('b', null, `${o.profiles.length}/${o.max_profiles}`), h('span', null, 'Profiles')),
+          h('div', { class: 'stat' }, h('b', null, bytes(o.files_bytes)), h('span', null, 'Book files')), h('div', { class: 'stat' }, h('b', null, bytes(o.db_bytes)), h('span', null, 'Database')), h('div', { class: 'stat' }, h('b', null, bytes(o.disk_free_bytes)), h('span', null, 'Free on disk'))),
+        h('div', { class: 'bar', style: { 'margin-top': '14px' }, role: 'progressbar', 'aria-label': 'Storage used of plan', 'aria-valuenow': Math.round(used / o.plan_bytes * 100), 'aria-valuemin': 0, 'aria-valuemax': 100 }, h('i', { style: { width: `${Math.min(100, used / o.plan_bytes * 100)}%` } })),
+        h('p', { class: 'muted small', style: { 'margin-top': '6px' } }, `${bytes(used)} of the planned ${bytes(o.plan_bytes)}. Books are deleted, edited and re-processed from each book’s page.`)),
+      h('section', { class: 'card' }, h('h2', null, 'Profiles'), profiles),
+      h('section', { class: 'card stack' }, h('h2', null, 'Backups'),
+        h('p', { class: 'muted small' }, `A database dump is written every day and kept for 14 days; book files are mirrored alongside. ${o.backups.length ? `Latest: ${o.backups[0].name} (${bytes(o.backups[0].bytes)}), ${o.backups.length} kept.` : 'None written yet.'}`),
+        h('div', { class: 'row' }, h('a', { class: 'btn primary', href: '/api/admin/backup/download', download: '' }, '⬇ Download full backup'),
+          h('button', { class: 'btn', onClick: async (e) => { e.target.disabled = true; await api('/admin/backups', { method: 'POST' }); toast('Backup written'); reload(); } }, 'Back up now'))),
+      h('section', { class: 'card' }, h('h2', null, 'Access codes'), secrets),
+      h('section', { class: 'card' }, h('h2', null, 'XP and badge rules'), rulesForm)));
+}

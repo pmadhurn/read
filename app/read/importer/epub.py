@@ -145,7 +145,10 @@ def parse(path: str) -> Parsed:
         else:
             # A chapter's own heading usually repeats its TOC title; drop the echo.
             for s in sections:
-                if s.paragraphs and s.title and s.paragraphs[0].strip().lower() == s.title.strip().lower():
+                if not (s.paragraphs and s.title):
+                    continue
+                head, title = s.paragraphs[0].strip().lower(), s.title.strip().lower()
+                if len(head) < 120 and (head == title or title.startswith(head) or title.endswith(head)):
                     s.paragraphs.pop(0)
 
     return Parsed(title=meta("title"), author=meta("creator"), cover=cover, sections=sections)
