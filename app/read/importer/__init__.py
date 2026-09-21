@@ -31,6 +31,9 @@ def submit(book_id: int, ocr: bool = False, force: bool = False) -> None:
 def resume_pending() -> None:
     conn = connect()
     try:
+        ex(conn, "UPDATE books SET status='error', stage='failed', error_code='download', "
+                 "error_msg='The download was interrupted. Add the book again.' "
+                 "WHERE status='processing' AND stage='downloading'")
         for row in q(conn, "SELECT id FROM books WHERE status='processing' AND deleted_at IS NULL"):
             submit(row["id"])
     finally:

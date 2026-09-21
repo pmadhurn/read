@@ -306,3 +306,11 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .controls .play { min-width: 56px; }
   .context { padding-inline: 16px; }
 }
+
+/* ---------- find online ---------- */
+.finds { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); }
+.find { display: flex; gap: 14px; align-items: flex-start; }
+.find .cover { width: 84px; flex: none; }
+.find > .stack { min-width: 0; overflow-wrap: anywhere; }
+.find select { max-width: 100%; }
+@media (max-width: 480px) { .find .cover { width: 60px; } .find .row .btn, .find .row select { flex: 1 1 auto; } }

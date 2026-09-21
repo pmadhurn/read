@@ -30,6 +30,7 @@ written to `BACKUP_DIR`.
 ```
 app/read/            API and domain logic
   importer/          one module per format (epub, pdf, simple: txt/html/md/docx/mobi/url)
+  discover.py        search free books online (Gutenberg, Internet Archive) and pull them in
   game.py            streaks, XP, badges, leagues
   security.py        passcode gate, admin PIN, rate limiting
 web/                 frontend: plain ES modules, no build step

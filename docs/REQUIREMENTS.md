@@ -25,6 +25,11 @@ site through Cloudflare (38 checks), `LOGIC` = `tests/logic.py` (14 checks), `E2
 | NF-5 | Backups sit on the same disk as the data. Offsite copy is not set up. |
 | AC-6 | Profiles trust the `X-Profile-Id` header; anyone past the passcode can act as any profile. That is the spec's trust model. |
 
+## Added after the SRS
+| Item | Status | Verified |
+|---|---|---|
+| Find books online: search Project Gutenberg and the Internet Archive (free, openly downloadable texts only; lending-only and restricted items are filtered out) and add a result straight to the library. Download addresses are built on the server and may only point at those sources. | done | API run by hand (English, Hindi, Gujarati searches; EPUB and PDF adds), `tests/discover.mjs` in the browser |
+
 ## Access and profiles
 | ID | Status | Verified |
 |---|---|---|

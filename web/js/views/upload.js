@@ -84,6 +84,6 @@ export async function render(root) {
 
   root.append(h('div', { class: 'stack', style: { 'max-width': '760px' } },
     h('a', { href: '#/library', class: 'btn ghost sm', style: { 'align-self': 'flex-start' } }, '← Library'), h('h1', null, 'Add a book'),
-    segmented([['files', 'Files'], ['paste', 'Paste text'], ['web', 'Web article']], 'files', (v) => { files.hidden = v !== 'files'; paste.hidden = v !== 'paste'; web.hidden = v !== 'web'; }, 'Source'),
+    segmented([['files', 'Files'], ['paste', 'Paste text'], ['web', 'Web article'], ['find', '🔎 Search online']], 'files', (v) => { if (v === 'find') { go('#/discover'); return; } files.hidden = v !== 'files'; paste.hidden = v !== 'paste'; web.hidden = v !== 'web'; }, 'Source'),
     h('div', { class: 'card' }, files, paste, web)));
 }

@@ -61,6 +61,7 @@ export async function render(root) {
           const name = await promptBox('New shared collection', { label: 'Name', ok: 'Create' });
           if (name) { await api('/collections', { method: 'POST', body: { name } }); toast('Collection created. Add books from a book’s page.'); render(clear(root)); }
         } }, '＋ Collection'),
+        h('a', { class: 'btn', href: '#/discover' }, '🔎 Find online'),
         h('a', { class: 'btn primary', href: '#/upload' }, '⬆ Add a book'))),
     h('div', { class: 'toolbar' }, search, filter, sort,
       segmented([['grid', '▦ Grid'], ['list', '☰ List']], prefs.view || 'grid', (v) => { prefs.view = v; save(); paint(); }, 'Layout')),

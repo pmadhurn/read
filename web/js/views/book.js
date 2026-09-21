@@ -3,7 +3,7 @@ import { api } from '../api.js';
 import { h, clear, cover, avatar, num, duration, dateStr, bytes, modal, confirmBox, toast, segmented } from '../ui.js';
 import { state, go, ensureAdmin } from '../app.js';
 
-const STAGES = { queued: 'Waiting to start', parsing: 'Reading the file', ocr: 'Running OCR (this is slow)', chapters: 'Splitting into chapters', done: 'Done' };
+const STAGES = { downloading: 'Downloading from the source', queued: 'Waiting to start', parsing: 'Reading the file', ocr: 'Running OCR (this is slow)', chapters: 'Splitting into chapters', done: 'Done' };
 
 function editDialog(book) {
   return modal((close) => {

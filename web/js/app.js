@@ -10,6 +10,7 @@ const routes = {
   library: () => import('./views/library.js'),
   book: () => import('./views/book.js'),
   upload: () => import('./views/upload.js'),
+  discover: () => import('./views/discover.js'),
   read: () => import('./views/reader.js'),
   ranks: () => import('./views/social.js'),
   stats: () => import('./views/stats.js'),
@@ -91,7 +92,7 @@ async function render() {
   const load = routes[name] || routes[''];
   const mod = await load();
   const fullscreen = name === 'read';
-  const target = fullscreen ? clear(root) : shell(['book', 'upload'].includes(name) ? 'library'
+  const target = fullscreen ? clear(root) : shell(['book', 'upload', 'discover'].includes(name) ? 'library'
     : ['compare', 'review', 'badges'].includes(name) ? 'stats' : name === 'admin' ? 'settings' : name);
   cleanup = await mod.render(target, { params, query, name });
   if (!fullscreen) window.scrollTo(0, 0);

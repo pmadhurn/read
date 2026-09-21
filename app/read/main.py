@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import api_core, api_more, backup, config, game, importer, push, security
+from . import api_core, api_more, backup, discover, config, game, importer, push, security
 from .db import init_schema, tx, q1
 
 # Reachable without the family passcode: the gate itself and nothing else (AC-1).
@@ -80,4 +80,5 @@ def robots():
 app.include_router(api_core.router)
 app.include_router(api_more.router)
 app.include_router(api_more.admin)
+app.include_router(discover.router)
 app.mount("/", StaticFiles(directory=config.WEB_DIR, html=True), name="web")
