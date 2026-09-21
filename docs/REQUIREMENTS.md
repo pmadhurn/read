@@ -29,6 +29,7 @@ site through Cloudflare (38 checks), `LOGIC` = `tests/logic.py` (14 checks), `E2
 | Item | Status | Verified |
 |---|---|---|
 | Find books online: search Project Gutenberg and the Internet Archive (free, openly downloadable texts only; lending-only and restricted items are filtered out) and add a result straight to the library. Download addresses are built on the server and may only point at those sources. | done | API run by hand (English, Hindi, Gujarati searches; EPUB and PDF adds), `tests/discover.mjs` in the browser |
+| Sanskrit: Devanagari and Vedic marks render with the bundled Noto fonts; Sanskrit chapter headings (अध्यायः, सर्गः, काण्डम्, पर्व …) split chapters; danda and double danda end sentences; Devanagari digits get the number pause; tesseract `san` added to OCR; Sanskrit filter in Find online; dictionary keeps vowel signs. | done | heading, search and dictionary checks run by hand; Sanskrit OCR not tried on a real scan |
 
 ## Access and profiles
 | ID | Status | Verified |

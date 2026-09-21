@@ -43,7 +43,7 @@ export function readerControls(s, onChange) {
 
 // Live preview of font, size and colours (AP-7).
 function preview(s) {
-  const sample = ['Reading', 'किताबें', 'વાંચન', 'comprehension', 'one', 'word', 'at', 'a', 'time.'];
+  const sample = ['Reading', 'किताबें', 'धर्मक्षेत्रे', 'વાંચન', 'comprehension', 'one', 'word', 'at', 'a', 'time.'];
   const pre = h('span', { class: 'pre' }), pivot = h('span', { class: 'pivot' }), post = h('span', { class: 'post' });
   const box = h('div', { class: 'rsvp' }, h('i', { class: 'rule top' }), h('i', { class: 'rule bot' }), h('i', { class: 'guide top' }), h('i', { class: 'guide bot' }), h('div', { class: 'word' }, pre, pivot, post));
   const wrap = h('div', { class: 'preview', 'aria-hidden': 'true' }, box);

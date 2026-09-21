@@ -152,7 +152,7 @@ export async function render(root, { params, query }) {
       const len = splitAtOrp(w)[3];
       let f = 1;
       if (len > 12) f = 1.5; else if (len > 8) f = 1.3;                                       // SP-4
-      if (/\d/.test(w)) f = Math.max(f, 1.5);
+      if (/\p{Nd}/u.test(w)) f = Math.max(f, 1.5);                                     // also Devanagari and Gujarati digits
       total += base * f;
     }
     const last = ch.words[i + count - 1];
@@ -316,7 +316,7 @@ export async function render(root, { params, query }) {
     target?.scrollIntoView({ block: 'center' });
   }
   async function define() {
-    const clean = ch.words[idx].replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '');
+    const clean = ch.words[idx].replace(/^[^\p{L}]+|[^\p{L}\p{M}]+$/gu, '');   // trailing vowel signs belong to the word
     try {
       const d = await api(`/dictionary/${encodeURIComponent(clean)}`, { quiet: true });
       const { modal } = await import('../ui.js');

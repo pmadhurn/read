@@ -1,7 +1,7 @@
 FROM python:3.12-slim-trixie
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        postgresql-client tesseract-ocr tesseract-ocr-eng tesseract-ocr-hin tesseract-ocr-guj \
+        postgresql-client tesseract-ocr tesseract-ocr-eng tesseract-ocr-hin tesseract-ocr-guj tesseract-ocr-san \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /srv

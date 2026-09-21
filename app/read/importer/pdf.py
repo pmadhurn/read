@@ -8,7 +8,7 @@ from .textutil import Parsed, Section, ImportError_, clean, sections_from_blocks
 
 # Pre-Unicode Indic fonts: text extracts as Latin gibberish even though it looks right on the page (IM-11).
 _LEGACY_FONTS = re.compile(
-    r"kruti|krutidev|devlys|dev ?lys|shusha|shree-?(dev|guj|lipi)|chanakya|walkman|agra|aps-|4cgandhi|"
+    r"sanskrit ?(98|99|1\.2)|kruti|krutidev|devlys|dev ?lys|shusha|shree-?(dev|guj|lipi)|chanakya|walkman|agra|aps-|4cgandhi|"
     r"lmg|terafont|saumil|gopika|harikrishna|nilkanth|ghanshyam|bhasha|avantika|krishna|shivaji|mangal-legacy",
     re.IGNORECASE)
 _PAGE_NUMBER = re.compile(r"^\W*(page\s*)?(\d{1,4}|[ivxlcdm]{1,7})(\s*(of|/)\s*\d{1,4})?\W*$", re.IGNORECASE)
@@ -78,10 +78,10 @@ def parse(path: str, ocr: bool = False, progress=lambda pct: None) -> Parsed:
         if legacy and not ocr:
             warnings.append({"code": "legacy_font",
                              "message": "This PDF uses old non-Unicode fonts (" + ", ".join(legacy[:3]) +
-                                        "). Hindi or Gujarati text may come out garbled. "
+                                        "). Hindi, Sanskrit or Gujarati text may come out garbled. "
                                         "A Unicode edition, or OCR, will read correctly."})
 
-        ocr_lang = "eng+hin+guj" if ocr else None
+        ocr_lang = "eng+hin+guj+san" if ocr else None
         pages: list[list[tuple[float, float, str]]] = []
         for i, page in enumerate(doc):
             pages.append(_page_blocks(page, ocr_lang))

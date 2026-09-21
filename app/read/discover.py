@@ -113,7 +113,7 @@ def search_archive(query: str, lang: str) -> list[dict]:
 
 
 # Archive.org items carry either the language name or its ISO 639-2 code.
-ARCHIVE_LANG = {"en": "English OR eng", "hi": "Hindi OR hin", "gu": "Gujarati OR guj"}
+ARCHIVE_LANG = {"en": "English OR eng", "hi": "Hindi OR hin", "gu": "Gujarati OR guj", "sa": "Sanskrit OR san"}
 
 
 @router.get("")
@@ -121,7 +121,7 @@ def search(q: str, source: str = "all", lang: str = "", _: dict = Depends(curren
     query = " ".join(q.split())[:120]
     if len(query) < 2:
         raise HTTPException(400, "Type at least two letters.")
-    if lang not in ("", "en", "hi", "gu"):
+    if lang not in ("", "en", "hi", "gu", "sa"):
         raise HTTPException(400, "Bad language")
     results, errors = [], []
     for name, fn, arg in (("gutenberg", search_gutenberg, lang), ("archive", search_archive, ARCHIVE_LANG.get(lang, ""))):

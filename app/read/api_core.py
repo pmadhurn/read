@@ -1,6 +1,7 @@
 """Access, profiles, library, import and reading endpoints."""
 import re
 import secrets
+import unicodedata
 from html import unescape
 from urllib.parse import quote
 import shutil
@@ -620,7 +621,8 @@ def delete_bookmark(bid: int, p: dict = Depends(current_profile)):
 @router.get("/dictionary/{word}")
 def define(word: str):
     import httpx
-    word = re.sub(r"[^\w'-]", "", word).lower()[:40]
+    # Keep combining marks: \w alone drops Devanagari and Gujarati vowel signs and the virama.
+    word = "".join(ch for ch in word if ch in "'-" or unicodedata.category(ch)[0] in "LMN").lower()[:40]
     if not word:
         raise HTTPException(404, "No definition found")
     with tx() as c:

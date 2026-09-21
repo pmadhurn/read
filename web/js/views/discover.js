@@ -30,7 +30,7 @@ export async function render(root) {
   const status = h('p', { class: 'muted', role: 'status' }, 'Search Project Gutenberg and the Internet Archive for free, legally downloadable books. Public-domain classics are the best covered; recent paid books are not there.');
   const input = h('input', { type: 'search', placeholder: 'Title or author', value: last.q, 'aria-label': 'Search online', autofocus: true });
   const lang = h('select', { 'aria-label': 'Language', style: { width: 'auto' }, onChange: () => { last.lang = lang.value; } },
-    [['', 'Any language'], ['en', 'English'], ['hi', 'Hindi'], ['gu', 'Gujarati']].map(([v, t]) => h('option', { value: v, selected: last.lang === v }, t)));
+    [['', 'Any language'], ['en', 'English'], ['hi', 'Hindi'], ['sa', 'Sanskrit'], ['gu', 'Gujarati']].map(([v, t]) => h('option', { value: v, selected: last.lang === v }, t)));
   const NAMES = { gutenberg: 'Project Gutenberg', archive: 'Internet Archive' };
   const paint = (data, pending = []) => {
     clear(list).append(...data.results.map(result));
