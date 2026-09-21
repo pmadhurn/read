@@ -38,6 +38,8 @@ export async function render(root, { params, query }) {
   try { book = await api(`/books/${bookId}`); } catch { go('#/library'); return; }
   if (book.status !== 'ready') { go(`#/book/${bookId}`); return; }
 
+  // Settings may have changed on another device since this tab loaded them.
+  await api('/me', { quiet: true }).then((me) => { setMe(me); }).catch(() => {});
   const s = { ...state.me.settings };
   const sessionId = (crypto.randomUUID?.() || String(Math.random()).slice(2)) + Date.now().toString(36);
   const debug = query.get('debug') === '1';

@@ -1,6 +1,8 @@
 """Access, profiles, library, import and reading endpoints."""
 import re
 import secrets
+from html import unescape
+from urllib.parse import quote
 import shutil
 import uuid
 from datetime import timedelta
@@ -16,6 +18,7 @@ from .security import current_profile
 router = APIRouter(prefix="/api")
 
 AVATAR_MAX = 16
+_TAGS = re.compile(r"<[^>]+>")
 _COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 DEFAULT_PROFILE_SETTINGS = {
     "theme": "dark", "font": "serif", "size": 48, "orp_color": "#ff4d4d", "guides": True, "show_wpm": True,
@@ -626,15 +629,21 @@ def define(word: str):
         data = hit["data"]
     else:
         try:
-            resp = httpx.get(f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}", timeout=8)
+            resp = httpx.get(f"https://en.wiktionary.org/api/rest_v1/page/definition/{quote(word)}", timeout=8,
+                             headers={"User-Agent": f"read-family-library ({config.PUBLIC_URL})"}, follow_redirects=True)
         except httpx.HTTPError:
+            raise HTTPException(503, "The dictionary is unreachable right now.")
+        if resp.status_code >= 500:
             raise HTTPException(503, "The dictionary is unreachable right now.")
         data = []
         if resp.status_code == 200:
-            for entry in resp.json()[:2]:
-                for m in entry.get("meanings", [])[:3]:
-                    data.append({"part": m.get("partOfSpeech", ""),
-                                 "definitions": [d["definition"] for d in m.get("definitions", [])[:2]]})
+            by_language = resp.json()
+            entries = by_language.get("en") or next(iter(by_language.values()), [])
+            for entry in entries[:3]:
+                definitions = [_TAGS.sub("", unescape(d.get("definition", ""))).strip() for d in entry.get("definitions", [])]
+                definitions = [d for d in definitions if d][:2]
+                if definitions:
+                    data.append({"part": entry.get("partOfSpeech", "").lower(), "definitions": definitions})
         with tx() as c:
             ex(c, "INSERT INTO dictionary_cache (word, data) VALUES (%s,%s) ON CONFLICT DO NOTHING", word, Jsonb(data))
     if not data:
