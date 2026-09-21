@@ -644,8 +644,9 @@ def define(word: str):
                 definitions = [d for d in definitions if d][:2]
                 if definitions:
                     data.append({"part": entry.get("partOfSpeech", "").lower(), "definitions": definitions})
-        with tx() as c:
-            ex(c, "INSERT INTO dictionary_cache (word, data) VALUES (%s,%s) ON CONFLICT DO NOTHING", word, Jsonb(data))
+        if resp.status_code in (200, 404):      # a throttled or failed lookup must not be remembered as "no definition"
+            with tx() as c:
+                ex(c, "INSERT INTO dictionary_cache (word, data) VALUES (%s,%s) ON CONFLICT DO NOTHING", word, Jsonb(data))
     if not data:
         raise HTTPException(404, "No definition found")
     return {"word": word, "meanings": data}
