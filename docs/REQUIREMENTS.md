@@ -30,6 +30,7 @@ site through Cloudflare (38 checks), `LOGIC` = `tests/logic.py` (14 checks), `E2
 |---|---|---|
 | Find books online: search Project Gutenberg and the Internet Archive (free, openly downloadable texts only; lending-only and restricted items are filtered out) and add a result straight to the library. Download addresses are built on the server and may only point at those sources. | done | API run by hand (English, Hindi, Gujarati searches; EPUB and PDF adds), `tests/discover.mjs` in the browser |
 | Sanskrit: Devanagari and Vedic marks render with the bundled Noto fonts; Sanskrit chapter headings (अध्यायः, सर्गः, काण्डम्, पर्व …) split chapters; danda and double danda end sentences; Devanagari digits get the number pause; tesseract `san` added to OCR; Sanskrit filter in Find online; dictionary keeps vowel signs. | done | heading, search and dictionary checks run by hand; Sanskrit OCR not tried on a real scan |
+| Offline on a device: the whole app shell (scripts, styles, fonts, icons) is stored when the service worker installs; every book you open is kept, and “Keep offline” on a book page saves all its chapters and cover on purpose; a “Saved on this device” library filter, an Offline chip in the header, and an install hint (Chrome prompt / iOS Add to Home Screen) under Settings. | done | `tests/offline.mjs` (13 checks, live) |
 
 ## Access and profiles
 | ID | Status | Verified |
@@ -156,7 +157,7 @@ site through Cloudflare (38 checks), `LOGIC` = `tests/logic.py` (14 checks), `E2
 | NF-6 HTTPS only, argon2 hashes | done | CODE |
 | NF-7 book files only behind the cookie, `private` cache headers | done | API |
 | NF-8 no third-party analytics, fonts self-hosted, CSP `self` | done | E2E (no external requests) |
-| NF-9 installable PWA, current book offline | done | E2E2 (offline reload); install prompt not tested |
+| NF-9 installable PWA, offline reading | done | `tests/offline.mjs`: shell precached on install, “Keep offline” per book, cold start offline into library/reader/settings, chapter switching, reading queued and synced later; browser install prompt itself not tested |
 | NF-10 accessibility | done | see above |
 | NF-11 10 GB plan shown in admin | done | API |
 | NF-12 one parser module per format | done | CODE |

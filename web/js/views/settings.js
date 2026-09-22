@@ -4,6 +4,7 @@ import { h, clear, segmented, toast, avatar } from '../ui.js';
 import { state, setMe, applyTheme, go, ensureAdmin } from '../app.js';
 import { profileForm } from './profiles.js';
 import { splitAtOrp } from './reader.js';
+import * as offline from '../offline.js';
 
 export const FONTS = {
   serif: { label: 'Serif (Literata)', css: 'var(--font-serif)' },
@@ -100,6 +101,12 @@ export async function render(root) {
       h('button', { class: 'btn', 'aria-pressed': String(state.me.goal_type === 'words'), onClick: async () => { await patch({ goal_type: 'words', goal_value: Number(customInput.value) }, 'Goal saved'); paintGoals(); } }, 'Use words')));
   paintGoals(); void isCustom;
 
+  const ua = navigator.userAgent, ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const installBox = h('div', { class: 'stack', style: { gap: '8px' } }, h('h2', { style: { 'margin-top': '8px' } }, 'On this device'),
+    offline.isInstalled() ? h('p', { class: 'muted small' }, 'Installed as an app on this device.')
+      : offline.installPrompt ? h('div', null, h('button', { class: 'btn', onClick: async () => { offline.installPrompt.prompt(); const r = await offline.installPrompt.userChoice; if (r.outcome === 'accepted') toast('Installed'); } }, '📲 Install as an app'))
+        : h('p', { class: 'muted small' }, ios ? 'To install: tap Share in Safari, then “Add to Home Screen”.' : 'To install: open the browser menu and choose “Install app” or “Add to Home screen”.'),
+    h('p', { class: 'muted small' }, `Books you open are kept for offline reading; press “Keep offline” on a book to save all of it. ${offline.keptIds().length} book${offline.keptIds().length === 1 ? '' : 's'} saved on this device. Reading offline still counts: it syncs when you are back online.`));
   const pushBox = h('div');
   reminders(pushBox);
 
@@ -110,7 +117,7 @@ export async function render(root) {
           h('button', { class: 'btn', onClick: async () => { const r = await profileForm({ title: 'Edit profile', initial: me, submitLabel: 'Save', onSubmit: (body) => api('/me', { method: 'PATCH', body }) }); if (r) { setMe(r); go('#/settings'); } } }, 'Edit')),
         h('label', { class: 'switch' }, h('span', null, 'Hide me from the leaderboard', h('div', { class: 'muted small' }, 'Also hides you from leagues and the activity feed. Your own streaks, XP and badges keep working.')),
           h('input', { type: 'checkbox', checked: me.hidden, onChange: (e) => patch({ hidden: e.target.checked }, e.target.checked ? 'You are hidden' : 'You are visible') })),
-        h('h2', { style: { 'margin-top': '8px' } }, 'Daily goal'), goalBox, pushBox,
+        h('h2', { style: { 'margin-top': '8px' } }, 'Daily goal'), goalBox, pushBox, installBox,
         h('div', { class: 'row', style: { 'margin-top': '8px' } }, h('a', { class: 'btn', href: '#/badges' }, '🏅 Badges'), h('button', { class: 'btn', onClick: async () => { if (await ensureAdmin()) go('#/admin'); } }, '🔐 Admin'))),
       h('section', { class: 'card stack' }, h('h2', null, 'Reader'), pv.el, readerControls(s, changed))));
   return () => { pv.stop(); clearTimeout(timer); };

@@ -2,6 +2,7 @@
 import { api } from '../api.js';
 import { h, clear, cover, avatar, num, duration, dateStr, bytes, modal, confirmBox, toast, segmented } from '../ui.js';
 import { state, go, ensureAdmin } from '../app.js';
+import * as offline from '../offline.js';
 
 const STAGES = { downloading: 'Downloading from the source', queued: 'Waiting to start', parsing: 'Reading the file', ocr: 'Running OCR (this is slow)', chapters: 'Splitting into chapters', done: 'Done' };
 
@@ -73,6 +74,17 @@ export async function render(root, { params }) {
     const r = await api(`/books/${id}/favourite`, { method: 'POST' }); fav.setAttribute('aria-pressed', String(r.favourite)); fav.textContent = r.favourite ? '★ Favourite' : '☆ Favourite';
   } }, book.favourite ? '★ Favourite' : '☆ Favourite');
 
+  const keepBtn = h('button', { class: 'btn', hidden: !offline.supported() });
+  const paintKeep = () => { const kept = offline.isKept(id); keepBtn.textContent = kept ? '✓ Saved offline' : '⬇ Keep offline'; keepBtn.setAttribute('aria-pressed', String(kept)); keepBtn.title = kept ? 'Tap to remove the saved copy from this device' : 'Save the whole book on this device'; };
+  keepBtn.addEventListener('click', async () => {
+    keepBtn.disabled = true;
+    try {
+      if (offline.isKept(id)) { await offline.forget(id); toast('Removed from this device'); }
+      else { await offline.keep(id, (f) => { keepBtn.textContent = `Saving ${Math.round(f * 100)}%`; }); toast('Saved. This book opens without a connection now.'); }
+    } catch (e) { toast(e.offline ? 'Connect once to save it.' : e.message, 'bad'); }
+    keepBtn.disabled = false; paintKeep();
+  });
+  paintKeep();
   const toc = h('ol', { class: 'toc' }, book.chapters.map((c) => h('li', { class: c.ord === book.chapter_ord && started ? 'current' : '' },
     h('button', { onClick: () => go(`#/read/${id}?c=${c.ord}&w=0`) }, h('span', null, c.title), h('span', { class: 'muted small' }, `${duration(c.word_count / wpm * 60)}`)))));
 
@@ -84,7 +96,7 @@ export async function render(root, { params }) {
         book.warnings.map((w) => h('div', { class: 'notice warn' }, w.message)),
         h('div', { class: 'row' },
           h('a', { class: 'btn primary', href: `#/read/${id}` }, started && book.my_status !== 'finished' ? `▶ Continue (${Math.round(book.fraction * 100)}%)` : '▶ Read'),
-          h('a', { class: 'btn', href: `#/read/${id}?mode=scroll` }, 'Normal reading'), fav,
+          h('a', { class: 'btn', href: `#/read/${id}?mode=scroll` }, 'Normal reading'), fav, keepBtn,
           h('button', { class: 'btn', onClick: async () => { await collectionsDialog(book, lib.collections); } }, 'Collections')),
         h('div', { class: 'field' }, h('span', null, 'My status'),
           segmented([['to_read', 'To read'], ['reading', 'Reading'], ['finished', 'Finished']], book.my_status, (v) => api(`/books/${id}/status`, { method: 'PUT', body: { status: v } }).then(() => toast('Status saved')), 'My status')),

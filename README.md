@@ -34,7 +34,8 @@ app/read/            API and domain logic
   game.py            streaks, XP, badges, leagues
   security.py        passcode gate, admin PIN, rate limiting
 web/                 frontend: plain ES modules, no build step
-tests/               smoke.py (API), e2e.mjs (browser), logic.py (time rules), taps.mjs (tap targets)
+tests/               smoke.py (API), e2e.mjs / e2e2.mjs / offline.mjs / discover.mjs (browser), logic.py (time rules),
+                     taps.mjs (tap targets), check_precache.mjs (every module is in sw.js's precache list)
 ```
 
 `web/` is bind-mounted read-only, so frontend edits are live on reload. Backend edits need

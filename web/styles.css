@@ -314,3 +314,6 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .find > .stack { min-width: 0; overflow-wrap: anywhere; }
 .find select { max-width: 100%; }
 @media (max-width: 480px) { .find .cover { width: 60px; } .find .row .btn, .find .row select { flex: 1 1 auto; } }
+
+.offline-chip { color: var(--warn); }
+.offline-pill { top: auto; bottom: 10px; left: 6px; right: auto; }

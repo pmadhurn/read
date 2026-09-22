@@ -1,6 +1,7 @@
 // Shared library (LB-1..7).
 import { api } from '../api.js';
 import { h, clear, cover, segmented, promptBox, toast } from '../ui.js';
+import { isKept } from '../offline.js';
 
 const prefs = JSON.parse(localStorage.getItem('read.library') || '{}');
 const save = () => localStorage.setItem('read.library', JSON.stringify(prefs));
@@ -13,6 +14,7 @@ export function bookCard(b, list) {
         : b.my_status === 'finished' ? h('span', { class: 'pill good badge' }, '✓ Finished') : null;
   const c = cover(b);
   if (state) c.append(state);
+  if (isKept(b.id)) c.append(h('span', { class: 'pill badge offline-pill', title: 'Saved on this device' }, '⬇'));
   if (b.my_status === 'reading' && b.status === 'ready') c.append(h('div', { class: 'progress' }, h('i', { style: { width: `${pct}%` } })));
   return h('a', { class: 'book', href: `#/book/${b.id}`, 'aria-label': `${b.title}${b.author ? ' by ' + b.author : ''}${b.my_status === 'reading' ? `, ${pct}% read` : ''}` }, c,
     h('div', { class: 'meta' }, h('div', { class: 't' }, b.favourite ? '★ ' : '', b.title), h('div', { class: 'a' }, b.author || ' '),
@@ -29,7 +31,7 @@ export async function render(root) {
     [['added', 'Recently added'], ['read', 'Recently read'], ['title', 'Title'], ['author', 'Author']].map(([v, t]) => h('option', { value: v, selected: (prefs.sort || 'added') === v }, t)));
   const filter = h('select', { 'aria-label': 'Filter', onChange: () => { prefs.filter = filter.value; save(); paint(); } },
     h('option', { value: '' }, 'All books'),
-    [['s:to_read', 'To read'], ['s:reading', 'Reading'], ['s:finished', 'Finished'], ['fav', '★ Favourites']].map(([v, t]) => h('option', { value: v }, t)),
+    [['s:to_read', 'To read'], ['s:reading', 'Reading'], ['s:finished', 'Finished'], ['fav', '★ Favourites'], ['offline', '⬇ Saved on this device']].map(([v, t]) => h('option', { value: v }, t)),
     tags.length ? h('optgroup', { label: 'Tags' }, tags.map((t) => h('option', { value: `t:${t}` }, t))) : null,
     data.collections.length ? h('optgroup', { label: 'Collections' }, data.collections.map((c) => h('option', { value: `c:${c.id}` }, c.name))) : null);
   filter.value = [...filter.options].some((o) => o.value === prefs.filter) ? prefs.filter : '';
@@ -41,6 +43,7 @@ export async function render(root) {
       if (needle && !`${b.title} ${b.author}`.toLowerCase().includes(needle)) return false;
       if (f.startsWith('s:')) return b.my_status === f.slice(2);
       if (f === 'fav') return b.favourite;
+      if (f === 'offline') return isKept(b.id);
       if (f.startsWith('t:')) return b.tags.includes(f.slice(2));
       if (f.startsWith('c:')) return data.collections.find((c) => String(c.id) === f.slice(2))?.book_ids.includes(b.id);
       return true;

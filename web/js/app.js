@@ -1,5 +1,6 @@
 import { api, session, setProfile, flushBeats } from './api.js';
 import { h, clear, avatar, modal, chime, toast } from './ui.js';
+import './offline.js';
 
 export const state = { me: null, admin: false };
 const root = document.getElementById('app');
@@ -62,6 +63,7 @@ function shell(active) {
       h('nav', { class: 'nav', 'aria-label': 'Main' }, NAV.map((n) => link(n, false))),
       h('span', { class: 'spacer' }),
       h('span', { id: 'chips', class: 'row nowrap' }),
+      h('span', { class: 'chip offline-chip', hidden: navigator.onLine, title: 'Showing saved copies. Reading still counts and syncs later.' }, '⚡ Offline'),
       // Always visible, on every page (AC-7).
       h('button', { class: 'who', onClick: () => go('#/profiles'), 'aria-label': `Switch profile. Current: ${state.me.name}` },
         avatar(state.me), h('span', { class: 'label' }, 'Switch'))),
@@ -129,6 +131,7 @@ export async function ensureAdmin() {
 }
 
 window.addEventListener('hashchange', render);
+for (const ev of ['online', 'offline']) window.addEventListener(ev, () => document.querySelectorAll('.offline-chip').forEach((c) => { c.hidden = navigator.onLine; }));
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 flushBeats();
 render().catch((e) => { console.error(e); clear(root).append(h('p', { class: 'boot' }, 'Something went wrong. Reload the page.')); });
