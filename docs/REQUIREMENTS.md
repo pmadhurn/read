@@ -105,7 +105,7 @@ site through Cloudflare (38 checks), `LOGIC` = `tests/logic.py` (14 checks), `E2
 | AP-7 live preview | done | E2E |
 | AP-8 profile accent colour | done | CODE |
 | AP-9 sounds with mute | done | CODE |
-| AP-10 360 px to 4K | done | E2E, TAPS |
+| AP-10 360 px to 4K | done | E2E, TAPS, screenshot review on emulated iPhone 13 / 360 px / landscape / iPad / 1366 desktop (`tests/shots.mjs`) |
 | AP-11 bundled Noto Devanagari and Gujarati, chosen automatically | done | E2E |
 
 ## Gamification and stats
