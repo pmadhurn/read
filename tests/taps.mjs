@@ -1,9 +1,10 @@
 // Tap-target audit at 360px: every interactive element must be at least 24x24 CSS px.
 import { createRequire } from 'node:module';
-const require = createRequire('/home/ubuntu/spends-ledger/');
+// Playwright is borrowed from wherever PLAYWRIGHT_DIR points (a project with it in node_modules).
+const require = createRequire((process.env.PLAYWRIGHT_DIR || '/home/ubuntu/spends-ledger') + '/');
 const { chromium } = require('playwright');
 const [BASE, PASSCODE, PIN] = process.argv.slice(2);
-const b = await chromium.launch({ executablePath: '/home/ubuntu/.cache/ms-playwright/chromium-1243/chrome-linux-arm64/chrome', args: ['--no-sandbox'] });
+const b = await chromium.launch({ executablePath: process.env.CHROME || '/home/ubuntu/.cache/ms-playwright/chromium-1243/chrome-linux-arm64/chrome', args: ['--no-sandbox'] });
 const page = await (await b.newContext({ viewport: { width: 360, height: 740 }, hasTouch: true, isMobile: true })).newPage();
 await page.goto(BASE + '/'); await page.fill('#passcode', PASSCODE); await page.click('#go'); await page.waitForSelector('.picker');
 await page.getByText('Add profile').click(); await page.fill('.modal input[type=text]', 'Tap' + Date.now().toString(36).slice(-5)); await page.click('.modal button[type=submit]'); await page.waitForSelector('.ring');

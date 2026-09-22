@@ -1,6 +1,7 @@
 // Browser end-to-end check. Usage: node e2e.mjs BASE PASSCODE PIN [outDir]
 import { createRequire } from 'node:module';
-const require = createRequire('/home/ubuntu/spends-ledger/');
+// Playwright is borrowed from wherever PLAYWRIGHT_DIR points (a project with it in node_modules).
+const require = createRequire((process.env.PLAYWRIGHT_DIR || '/home/ubuntu/spends-ledger') + '/');
 const { chromium } = require('playwright');
 const [BASE, PASSCODE, PIN, OUT = '/tmp'] = process.argv.slice(2);
 const CHROME = process.env.CHROME || '/home/ubuntu/.cache/ms-playwright/chromium-1243/chrome-linux-arm64/chrome';

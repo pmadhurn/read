@@ -55,3 +55,10 @@ docker compose exec -T -e PYTHONPATH=/srv app sh -c 'cat > /tmp/l.py && cd /srv 
 gunzip -c read-db-YYYY-MM-DD.sql.gz | docker compose exec -T db psql -U read -d read
 docker compose cp files/. app:/data/books/
 ```
+
+The browser tests borrow Playwright from another project's `node_modules` and a local Chromium:
+`PLAYWRIGHT_DIR=/path/to/project CHROME=/path/to/chrome node tests/e2e.mjs …`.
+
+## Licences
+
+Fonts in `web/fonts/` are under the SIL Open Font License (Inter, Literata, JetBrains Mono, Atkinson Hyperlegible, Noto) and the Bitstream Vera-derived OpenDyslexic licence.

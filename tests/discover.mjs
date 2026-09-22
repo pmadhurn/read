@@ -1,9 +1,10 @@
 // Browser check of the Find online page. Read-only: uses an existing profile, adds nothing.
 import { createRequire } from 'node:module';
-const require = createRequire('/home/ubuntu/spends-ledger/');
+// Playwright is borrowed from wherever PLAYWRIGHT_DIR points (a project with it in node_modules).
+const require = createRequire((process.env.PLAYWRIGHT_DIR || '/home/ubuntu/spends-ledger') + '/');
 const { chromium } = require('playwright');
 const [BASE, PASSCODE, OUT = '/tmp'] = process.argv.slice(2);
-const b = await chromium.launch({ executablePath: '/home/ubuntu/.cache/ms-playwright/chromium-1243/chrome-linux-arm64/chrome', args: ['--no-sandbox'] });
+const b = await chromium.launch({ executablePath: process.env.CHROME || '/home/ubuntu/.cache/ms-playwright/chromium-1243/chrome-linux-arm64/chrome', args: ['--no-sandbox'] });
 const page = await (await b.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
 const errs = []; page.on('pageerror', (e) => errs.push(e.message)); page.on('console', (m) => { if (m.type() === 'error' && !/404|401/.test(m.text())) errs.push(m.text()); });
 await page.goto(BASE + '/'); await page.fill('#passcode', PASSCODE); await page.click('#go'); await page.waitForSelector('.picker');

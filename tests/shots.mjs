@@ -1,9 +1,10 @@
 // Screenshots of every page at phone / tablet / desktop sizes with real device emulation.
 import { createRequire } from 'node:module';
-const require = createRequire('/home/ubuntu/spends-ledger/');
+// Playwright is borrowed from wherever PLAYWRIGHT_DIR points (a project with it in node_modules).
+const require = createRequire((process.env.PLAYWRIGHT_DIR || '/home/ubuntu/spends-ledger') + '/');
 const { chromium, devices } = require('playwright');
 const [BASE, PASSCODE, PIN, OUT] = process.argv.slice(2);
-const b = await chromium.launch({ executablePath: '/home/ubuntu/.cache/ms-playwright/chromium-1243/chrome-linux-arm64/chrome', args: ['--no-sandbox'] });
+const b = await chromium.launch({ executablePath: process.env.CHROME || '/home/ubuntu/.cache/ms-playwright/chromium-1243/chrome-linux-arm64/chrome', args: ['--no-sandbox'] });
 const profiles = { iphone: devices['iPhone 13'], small: { ...devices['iPhone SE'], viewport: { width: 360, height: 640 } }, land: { ...devices['iPhone 13 landscape'] }, ipad: devices['iPad (gen 7)'], desk: { viewport: { width: 1366, height: 768 } } };
 const ctx0 = await b.newContext(profiles.iphone); const p0 = await ctx0.newPage();
 await p0.goto(BASE + '/'); await p0.screenshot({ path: `${OUT}/iphone-gate.png` });

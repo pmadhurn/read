@@ -1,10 +1,11 @@
 // Second browser pass: passcode rotation, dictionary, chunk mode, celebration, compare, offline.
 import { createRequire } from 'node:module';
-const require = createRequire('/home/ubuntu/spends-ledger/');
+// Playwright is borrowed from wherever PLAYWRIGHT_DIR points (a project with it in node_modules).
+const require = createRequire((process.env.PLAYWRIGHT_DIR || '/home/ubuntu/spends-ledger') + '/');
 const { chromium } = require('playwright');
 const [BASE, PASSCODE, PIN] = process.argv.slice(2);
 const results = []; const check = (n, ok, info = '') => { results.push(ok); console.log(ok ? 'PASS' : 'FAIL', n, ok ? '' : JSON.stringify(info)); };
-const b = await chromium.launch({ executablePath: '/home/ubuntu/.cache/ms-playwright/chromium-1243/chrome-linux-arm64/chrome', args: ['--no-sandbox'] });
+const b = await chromium.launch({ executablePath: process.env.CHROME || '/home/ubuntu/.cache/ms-playwright/chromium-1243/chrome-linux-arm64/chrome', args: ['--no-sandbox'] });
 const ctx = await b.newContext({ viewport: { width: 1280, height: 800 } }); const page = await ctx.newPage();
 const errs = []; page.on('pageerror', (e) => errs.push(e.message));
 const F = (path, opt = {}) => page.evaluate(async ([path, opt]) => { const r = await fetch(path, { ...opt, headers: { 'Content-Type': 'application/json', 'X-Profile-Id': localStorage.getItem('read.profile') || '', ...(opt.headers || {}) } }); return { status: r.status, body: await r.json().catch(() => null) }; }, [path, opt]);
