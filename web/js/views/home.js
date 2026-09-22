@@ -1,6 +1,6 @@
 // Home: today's ring, streaks, 30-day calendar, continue reading, family activity (GM-5, LB-4, GM-14).
 import { api } from '../api.js';
-import { h, cover, avatar, ago, num, duration } from '../ui.js';
+import { h, cover, avatar, ago, num, duration, mount } from '../ui.js';
 import { state, refreshMe } from '../app.js';
 
 export function ring(fraction, big, small) {
@@ -54,7 +54,7 @@ export async function render(root) {
   const reading = lib.books.filter((b) => b.my_status === 'reading' && b.status === 'ready')
     .sort((a, b) => (b.read_at || '').localeCompare(a.read_at || ''));
 
-  root.append(
+  mount(root, 
     h('div', { class: 'page-head' }, h('h1', null, `Hello, ${me.name}`),
       h('a', { class: 'btn primary', href: reading[0] ? `#/read/${reading[0].id}` : '#/library' }, reading[0] ? '▶ Continue reading' : 'Pick a book')),
     h('div', { class: 'grid cols-2' },

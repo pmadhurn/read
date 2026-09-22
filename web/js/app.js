@@ -53,11 +53,11 @@ function paintChips() {
     h('span', { class: 'chip', title: `${state.me.xp} XP` }, `Lv ${state.me.level}`));
 }
 
-function shell(active) {
+function shell(frame, active) {
   const link = ([path, ico, label], withIcon) => h('a', { href: `#/${path}`, 'aria-current': path === active ? 'page' : null },
     withIcon ? h('span', { class: 'ico', 'aria-hidden': 'true' }, ico) : null, label);
   const view = h('main', { id: 'view', tabindex: '-1' });
-  clear(root).append(
+  frame.append(
     h('header', { class: 'topbar' },
       h('a', { class: 'brand', href: '#/', 'aria-label': 'Read, home' }, 'r', h('span', null, 'e'), 'ad'),
       h('nav', { class: 'nav', 'aria-label': 'Main' }, NAV.map((n) => link(n, false))),
@@ -73,31 +73,41 @@ function shell(active) {
   return view;
 }
 
+let ticket = 0;
 async function render() {
+  // Navigations can overlap (a tap while a page is still loading). Each render owns
+  // its own frame; whichever is no longer current removes its frame when it finishes.
+  const mine = ++ticket;
   if (cleanup) { try { cleanup(); } catch { /* view already gone */ } cleanup = null; }
   const [name = '', ...params] = location.hash.replace(/^#\/?/, '').split('?')[0].split('/');
   const query = new URLSearchParams(location.hash.split('?')[1] || '');
+  const frame = h('div', { class: 'frame' });
+  clear(root).append(frame);
+  const finish = (done) => { if (mine !== ticket) { frame.remove(); try { done?.(); } catch { /* ignore */ } return false; } cleanup = done || null; return true; };
 
   if (!session.profileId || name === 'profiles') {
     const mod = await routes.profiles();
-    cleanup = await mod.render(clear(root), { params, query });
+    if (mine !== ticket) { frame.remove(); return; }
+    finish(await mod.render(frame, { params, query }));
     return;
   }
   if (!state.me) {
     try { await refreshMe(); } catch (e) {
+      if (mine !== ticket) { frame.remove(); return; }
       if (e.status === 404) { setProfile(null); return render(); }   // profile was deleted
       if (!e.offline) throw e;
-      clear(root).append(h('p', { class: 'boot' }, 'You are offline. Open the app once while online first.'));
+      frame.append(h('p', { class: 'boot' }, 'You are offline. Open the app once while online first.'));
       return;
     }
   }
   const load = routes[name] || routes[''];
   const mod = await load();
+  if (mine !== ticket) { frame.remove(); return; }
   const fullscreen = name === 'read';
-  const target = fullscreen ? clear(root) : shell(['book', 'upload', 'discover'].includes(name) ? 'library'
+  const target = fullscreen ? frame : shell(frame, ['book', 'upload', 'discover'].includes(name) ? 'library'
     : ['compare', 'review', 'badges'].includes(name) ? 'stats' : name === 'admin' ? 'settings' : name);
-  cleanup = await mod.render(target, { params, query, name });
-  if (!fullscreen) window.scrollTo(0, 0);
+  const done = await mod.render(target, { params, query, name });
+  if (finish(done) && !fullscreen) window.scrollTo(0, 0);
 }
 
 // ---- celebrations (GM-10, GM-17): one pop-up per event, in order.

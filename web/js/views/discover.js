@@ -1,6 +1,6 @@
 // Find free books online (Project Gutenberg, Internet Archive) and add them straight to the library.
 import { api } from '../api.js';
-import { h, clear, segmented, toast, compact } from '../ui.js';
+import { h, clear, segmented, toast, compact, mount } from '../ui.js';
 import { go } from '../app.js';
 
 const last = { q: '', source: 'all', lang: '', data: null };
@@ -59,7 +59,7 @@ export async function render(root) {
       pending = pending.filter((x) => x !== src); paint(data, pending);
     }));
   };
-  root.append(h('div', { class: 'stack' },
+  mount(root, h('div', { class: 'stack' },
     h('a', { href: '#/library', class: 'btn ghost sm', style: { 'align-self': 'flex-start' } }, '← Library'), h('h1', null, 'Find books online'),
     h('form', { class: 'toolbar', role: 'search', onSubmit: (e) => { e.preventDefault(); run(); } }, input, lang,
       segmented([['all', 'All'], ['gutenberg', 'Gutenberg'], ['archive', 'Archive.org']], last.source, (v) => { last.source = v; }, 'Source'),

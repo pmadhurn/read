@@ -1,6 +1,6 @@
 // RSVP reader (RD-*, SP-*, NV-*), plus the normal scrolling mode (NV-7).
 import { api, queueBeat, onBeatResult, session } from '../api.js';
-import { h, clear, duration, toast, promptBox } from '../ui.js';
+import { h, clear, duration, toast, promptBox, mount } from '../ui.js';
 import { state, go, setMe, celebrate, applyTheme } from '../app.js';
 import { readerControls, FONTS } from './settings.js';
 
@@ -91,7 +91,7 @@ export async function render(root, { params, query }) {
     h('div', { class: 'reader-bottom' },
       h('div', { class: 'scrubber' }, leftChapter, h('div', { class: 'bar', role: 'progressbar', 'aria-label': 'Chapter progress', 'aria-valuemin': 0, 'aria-valuemax': 100 }, barFill), leftBook),
       controls, speedRow, presets));
-  root.append(el);
+  mount(root, el);
   titleEl.textContent = book.title;
 
   // ---------------------------------------------------------------- appearance

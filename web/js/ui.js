@@ -22,6 +22,8 @@ function add(el, children) {
   }
 }
 export const clear = (el) => { el.replaceChildren(); return el; };
+// Views hand their pieces to this so a conditional `null` never becomes the text "null".
+export const mount = (root, ...children) => { add(root, children); return root; };
 
 const nf = new Intl.NumberFormat('en-IN');
 export const num = (n) => nf.format(Math.round(n || 0));

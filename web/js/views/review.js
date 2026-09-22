@@ -1,6 +1,6 @@
 // Year in review (ST-7).
 import { api } from '../api.js';
-import { h, num, duration, dateStr } from '../ui.js';
+import { h, num, duration, dateStr, mount } from '../ui.js';
 import { barChart } from './stats.js';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -10,7 +10,7 @@ export async function render(root, { params }) {
   const r = await api(`/stats/${pid}/year/${year}`);
   const big = (value, label) => h('div', { class: 'card review' }, h('div', { class: 'huge' }, value), h('p', { class: 'muted' }, label));
   const hour = r.favourite_hour;
-  root.append(h('div', { class: 'page-head' }, h('h1', null, `${r.avatar} ${r.name}’s ${year} in review`),
+  mount(root, h('div', { class: 'page-head' }, h('h1', null, `${r.avatar} ${r.name}’s ${year} in review`),
     h('div', { class: 'row' }, h('a', { class: 'btn', href: `#/review/${pid}/${year - 1}` }, `← ${year - 1}`), h('a', { class: 'btn', href: `#/stats/${pid}` }, 'Stats'))),
     r.totals.words === 0 ? h('p', { class: 'empty' }, `No reading recorded in ${year}.`) : h('div', { class: 'stack' },
       h('div', { class: 'grid cols-3' }, big(num(r.totals.words), 'words read'), big(duration(r.totals.seconds), 'spent reading'), big(r.totals.books_finished, 'books finished'),

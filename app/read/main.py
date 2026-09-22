@@ -35,7 +35,9 @@ app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None
 @app.middleware("http")
 async def gate(request: Request, call_next):
     path = request.url.path
-    if path not in OPEN_PATHS and not security.device_ok(request):
+    # Fonts and icons carry nothing private and the gate page needs them.
+    is_open = path in OPEN_PATHS or path.startswith("/fonts/") or path.startswith("/icons/")
+    if not is_open and not security.device_ok(request):
         if path.startswith("/api/"):
             response = JSONResponse({"detail": "Passcode required"}, status_code=401)
         elif request.method == "GET" and "text/html" in request.headers.get("accept", ""):

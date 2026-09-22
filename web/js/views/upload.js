@@ -1,6 +1,6 @@
 // Add books: chunked file upload with progress, pasted text, web article (IM-1..3, IM-7).
 import { api, session } from '../api.js';
-import { h, bytes, segmented, toast } from '../ui.js';
+import { h, bytes, segmented, toast, mount } from '../ui.js';
 import { go } from '../app.js';
 
 const ACCEPT = '.epub,.pdf,.txt,.docx,.html,.htm,.md,.markdown,.mobi,.azw3,.azw';
@@ -82,7 +82,7 @@ export async function render(root) {
   } }, h('label', { class: 'field' }, h('span', null, 'Article address'), url), h('div', null, urlBtn));
   const files = h('div', { class: 'stack' }, drop, input, list);
 
-  root.append(h('div', { class: 'stack', style: { 'max-width': '760px' } },
+  mount(root, h('div', { class: 'stack', style: { 'max-width': '760px' } },
     h('a', { href: '#/library', class: 'btn ghost sm', style: { 'align-self': 'flex-start' } }, '← Library'), h('h1', null, 'Add a book'),
     segmented([['files', 'Files'], ['paste', 'Paste text'], ['web', 'Web article'], ['find', '🔎 Search online']], 'files', (v) => { if (v === 'find') { go('#/discover'); return; } files.hidden = v !== 'files'; paste.hidden = v !== 'paste'; web.hidden = v !== 'web'; }, 'Source'),
     h('div', { class: 'card' }, files, paste, web)));

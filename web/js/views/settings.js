@@ -1,6 +1,6 @@
 // Per-profile settings, stored on the server so they follow the person to every device (section 6).
 import { api } from '../api.js';
-import { h, clear, segmented, toast, avatar } from '../ui.js';
+import { h, clear, segmented, toast, avatar, mount } from '../ui.js';
 import { state, setMe, applyTheme, go, ensureAdmin } from '../app.js';
 import { profileForm } from './profiles.js';
 import { splitAtOrp } from './reader.js';
@@ -97,8 +97,9 @@ export async function render(root) {
   const paintGoals = () => clear(goalBox).append(
     h('div', { class: 'grid cols-4' }, GOALS.map(([type, value, name, text]) => h('button', { class: 'btn', style: { 'flex-direction': 'column', gap: '0' },
       'aria-pressed': String(state.me.goal_type === type && state.me.goal_value === value), onClick: async () => { await patch({ goal_type: type, goal_value: value }, 'Goal saved'); paintGoals(); } }, h('b', null, name), h('span', { class: 'muted small' }, `${text} a day`)))),
-    h('div', { class: 'row' }, h('span', { class: 'grow' }, 'Custom word count'), h('div', { style: { width: '130px' } }, customInput),
-      h('button', { class: 'btn', 'aria-pressed': String(state.me.goal_type === 'words'), onClick: async () => { await patch({ goal_type: 'words', goal_value: Number(customInput.value) }, 'Goal saved'); paintGoals(); } }, 'Use words')));
+    h('div', { class: 'field' }, h('span', null, 'Or a custom word count per day'),
+      h('div', { class: 'row nowrap' }, customInput,
+        h('button', { class: 'btn', style: { flex: 'none' }, 'aria-pressed': String(state.me.goal_type === 'words'), onClick: async () => { await patch({ goal_type: 'words', goal_value: Number(customInput.value) }, 'Goal saved'); paintGoals(); } }, 'Use words'))));
   paintGoals(); void isCustom;
 
   const ua = navigator.userAgent, ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -110,7 +111,7 @@ export async function render(root) {
   const pushBox = h('div');
   reminders(pushBox);
 
-  root.append(h('div', { class: 'page-head' }, h('h1', null, 'Settings')),
+  mount(root, h('div', { class: 'page-head' }, h('h1', null, 'Settings')),
     h('div', { class: 'grid cols-2' },
       h('section', { class: 'card stack' }, h('h2', null, 'Profile'),
         h('div', { class: 'row' }, avatar(me, 'md'), h('b', { class: 'grow' }, me.name),

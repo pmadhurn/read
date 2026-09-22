@@ -1,6 +1,6 @@
 // Shared library (LB-1..7).
 import { api } from '../api.js';
-import { h, clear, cover, segmented, promptBox, toast } from '../ui.js';
+import { h, clear, cover, segmented, promptBox, toast, mount } from '../ui.js';
 import { isKept } from '../offline.js';
 
 const prefs = JSON.parse(localStorage.getItem('read.library') || '{}');
@@ -57,7 +57,7 @@ export async function render(root) {
     if (!books.length) grid.append(h('p', { class: 'empty', style: { 'grid-column': '1 / -1' } }, data.books.length ? 'No books match.' : 'The library is empty. Upload the first book.'));
   }
 
-  root.append(
+  mount(root, 
     h('div', { class: 'page-head' }, h('h1', null, 'Library'),
       h('div', { class: 'row' },
         h('button', { class: 'btn', onClick: async () => {

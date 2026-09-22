@@ -1,6 +1,6 @@
 // Admin functions, all behind the PIN (section 9).
 import { api } from '../api.js';
-import { h, clear, num, bytes, confirmBox, promptBox, toast } from '../ui.js';
+import { h, clear, num, bytes, confirmBox, promptBox, toast, mount } from '../ui.js';
 import { state, go, ensureAdmin } from '../app.js';
 
 export async function render(root) {
@@ -9,12 +9,13 @@ export async function render(root) {
   const reload = () => render(clear(root));
   const used = o.files_bytes + o.db_bytes;
 
-  const profiles = h('div', { class: 'table-wrap' }, h('table', null, h('thead', null, h('tr', null, h('th', null, 'Profile'), h('th', { class: 'num' }, 'XP'), h('th', { class: 'num' }, 'Streak'), h('th', null, 'Actions'))),
-    h('tbody', null, o.profiles.map((p) => h('tr', null, h('td', null, `${p.avatar} ${p.name}`, p.hidden ? h('span', { class: 'pill' }, 'hidden') : null), h('td', { class: 'num' }, num(p.xp)), h('td', { class: 'num' }, p.streak),
-      h('td', null, h('div', { class: 'row' },
-        h('button', { class: 'btn sm', onClick: async () => { const name = await promptBox('Rename profile', { label: 'Name', value: p.name }); if (name) { await api(`/admin/profiles/${p.id}`, { method: 'PATCH', body: { name } }); reload(); } } }, 'Rename'),
-        h('button', { class: 'btn sm danger', onClick: async () => { if (await confirmBox(`Reset ${p.name}?`, 'Progress, XP, streaks, badges and history are wiped. The profile itself stays.', { danger: true, ok: 'Reset' })) { await api(`/admin/profiles/${p.id}/reset`, { method: 'POST' }); toast('Profile reset'); reload(); } } }, 'Reset'),
-        h('button', { class: 'btn sm danger', onClick: async () => { if (await confirmBox(`Delete ${p.name}?`, 'The profile and all of its history are removed for good. Books they uploaded stay.', { danger: true, ok: 'Delete' })) { await api(`/admin/profiles/${p.id}`, { method: 'DELETE' }); toast('Profile deleted'); if (p.id === state.me.id) { localStorage.removeItem('read.profile'); location.hash = ''; location.reload(); } else reload(); } } }, 'Delete'))))))));
+  const profiles = h('div', { class: 'admin-profiles' }, o.profiles.map((p) => h('div', { class: 'admin-profile' },
+    h('div', { class: 'grow' }, h('b', null, `${p.avatar} ${p.name}`, p.hidden ? h('span', { class: 'pill', style: { 'margin-left': '6px' } }, 'hidden') : null),
+      h('div', { class: 'muted small' }, `${num(p.xp)} XP · 🔥 ${p.streak}`)),
+    h('div', { class: 'row nowrap' },
+      h('button', { class: 'btn sm', onClick: async () => { const name = await promptBox('Rename profile', { label: 'Name', value: p.name }); if (name) { await api(`/admin/profiles/${p.id}`, { method: 'PATCH', body: { name } }); reload(); } } }, 'Rename'),
+      h('button', { class: 'btn sm danger', onClick: async () => { if (await confirmBox(`Reset ${p.name}?`, 'Progress, XP, streaks, badges and history are wiped. The profile itself stays.', { danger: true, ok: 'Reset' })) { await api(`/admin/profiles/${p.id}/reset`, { method: 'POST' }); toast('Profile reset'); reload(); } } }, 'Reset'),
+      h('button', { class: 'btn sm danger', onClick: async () => { if (await confirmBox(`Delete ${p.name}?`, 'The profile and all of its history are removed for good. Books they uploaded stay.', { danger: true, ok: 'Delete' })) { await api(`/admin/profiles/${p.id}`, { method: 'DELETE' }); toast('Profile deleted'); if (p.id === state.me.id) { localStorage.removeItem('read.profile'); location.hash = ''; location.reload(); } else reload(); } } }, 'Delete')))));
 
   const passcode = h('input', { type: 'text', autocomplete: 'off', placeholder: 'New family passcode (6+ characters)' });
   const pin = h('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', placeholder: 'New admin PIN (4–12 digits)' });
@@ -37,7 +38,7 @@ export async function render(root) {
     h('div', { class: 'grid cols-3' }, rules.badges.map((b) => h('label', { class: 'field' }, h('span', null, `${b.icon} ${b.name}`), badgeInputs[b.id] = h('input', { type: 'number', step: 'any', min: 1, value: b.threshold })))),
     h('div', null, h('button', { class: 'btn primary' }, 'Save rules')));
 
-  root.append(h('div', { class: 'page-head' }, h('h1', null, 'Admin'),
+  mount(root, h('div', { class: 'page-head' }, h('h1', null, 'Admin'),
     h('button', { class: 'btn', onClick: async () => { await api('/access/admin/logout', { method: 'POST' }); state.admin = false; go('#/settings'); } }, 'Lock admin')),
     h('div', { class: 'stack' },
       h('section', { class: 'card' }, h('h2', null, 'Storage'),

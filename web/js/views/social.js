@@ -1,6 +1,6 @@
 // Leaderboard, weekly league, trophies and the family feed (GM-11..14).
 import { api } from '../api.js';
-import { h, clear, avatar, num, segmented, dateStr } from '../ui.js';
+import { h, clear, avatar, num, segmented, dateStr, mount } from '../ui.js';
 import { state } from '../app.js';
 import { feedList } from './home.js';
 
@@ -24,7 +24,7 @@ export async function render(root) {
   const weeks = new Map();
   league.history.forEach((x) => { if (!weeks.has(x.week_start)) weeks.set(x.week_start, []); weeks.get(x.week_start).push(x); });
 
-  root.append(h('div', { class: 'page-head' }, h('h1', null, 'Ranks')),
+  mount(root, h('div', { class: 'page-head' }, h('h1', null, 'Ranks')),
     state.me.hidden ? h('div', { class: 'notice', style: { 'margin-bottom': '16px' } }, 'You are hidden from these boards. Change it in Settings.') : null,
     h('div', { class: 'grid cols-2' },
       h('section', { class: 'card' }, h('div', { class: 'row', style: { 'justify-content': 'space-between', 'margin-bottom': '12px' } }, h('h2', null, 'Family leaderboard'),

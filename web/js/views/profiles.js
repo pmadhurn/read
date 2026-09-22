@@ -1,6 +1,6 @@
 // "Who's reading?" (AC-5, AC-6, AC-7)
 import { api, setProfile } from '../api.js';
-import { h, clear, avatar, modal, toast } from '../ui.js';
+import { h, clear, avatar, modal, toast, mount } from '../ui.js';
 import { state, go, applyTheme } from '../app.js';
 
 const EMOJI = ['📖', '🦊', '🐼', '🦉', '🐯', '🐸', '🦋', '🐢', '🦄', '🐙', '🌻', '🌙', '⭐', '🔥', '🍉', '🥭', '⚽', '🎸', '🚀', '🎨', '🧠', '👑', '🪁', '🏏'];
@@ -54,7 +54,7 @@ export async function render(root) {
       h('span', { class: 'muted small' }, `${data.profiles.length} of ${data.max}`)));
   }
   applyTheme(state.me?.settings || { theme: 'dark' });
-  root.append(h('main', { class: 'picker', id: 'view' },
+  mount(root, h('main', { class: 'picker', id: 'view' },
     h('h1', null, 'Who’s reading?'), grid,
     h('p', null, h('button', { class: 'btn ghost sm', onClick: async () => { await api('/access/logout', { method: 'POST' }); location.reload(); } }, 'Forget this device'))));
 }

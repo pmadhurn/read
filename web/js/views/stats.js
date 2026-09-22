@@ -1,6 +1,6 @@
 // Reading stats for any profile (section 8), plus side-by-side compare (ST-6).
 import { api } from '../api.js';
-import { h, clear, avatar, num, compact, duration, dateStr, tip } from '../ui.js';
+import { h, clear, avatar, num, compact, duration, dateStr, tip, mount } from '../ui.js';
 import { state, go } from '../app.js';
 
 const W = 440, H = 190, PAD = { l: 38, r: 8, t: 10, b: 24 };
@@ -97,7 +97,7 @@ async function compare(root, a, b) {
   const pick = (current, other, side) => h('select', { 'aria-label': `Profile ${side}`, onChange: (e) => go(side === 'A' ? `#/compare/${e.target.value}/${other}` : `#/compare/${other}/${e.target.value}`) },
     all.profiles.map((p) => h('option', { value: p.id, selected: p.id === current }, p.name)));
   const row = (label, f, fmt = num) => { const x = f(A), y = f(B); return h('tr', null, h('td', { class: 'num', style: { 'font-weight': x > y ? 700 : 400 } }, fmt(x)), h('th', { style: { 'text-align': 'center' } }, label), h('td', { style: { 'font-weight': y > x ? 700 : 400 } }, fmt(y))); };
-  root.append(h('div', { class: 'page-head' }, h('h1', null, 'Compare'), h('a', { class: 'btn', href: '#/stats' }, '← Stats')),
+  mount(root, h('div', { class: 'page-head' }, h('h1', null, 'Compare'), h('a', { class: 'btn', href: '#/stats' }, '← Stats')),
     h('div', { class: 'card' }, h('div', { class: 'table-wrap' }, h('table', null,
       h('thead', null, h('tr', null, h('th', { class: 'num' }, pick(A.profile.id, B.profile.id, 'A')), h('th'), h('th', null, pick(B.profile.id, A.profile.id, 'B')))),
       h('tbody', null, row('Level', (s) => s.profile.level), row('Total XP', (s) => s.profile.xp), row('Current streak', (s) => s.profile.current_streak), row('Best streak', (s) => s.profile.best_streak),
@@ -112,7 +112,7 @@ export async function render(root, { params, name }) {
   const p = data.profile, days = last30(data), year = Number(data.today.slice(0, 4));
   const others = all.profiles.filter((x) => x.id !== pid);
 
-  root.append(
+  mount(root, 
     h('div', { class: 'page-head' }, h('div', { class: 'row' }, avatar(p, 'md'), h('div', null, h('h1', null, pid === state.me.id ? 'My stats' : p.name), h('span', { class: 'muted small' }, `Level ${p.level} · ${num(p.xp)} XP · 🔥 ${p.current_streak} · ${p.tier} league`))),
       h('div', { class: 'row' },
         h('select', { 'aria-label': 'View another profile', style: { width: 'auto' }, onChange: (e) => go(`#/stats/${e.target.value}`) }, all.profiles.map((x) => h('option', { value: x.id, selected: x.id === pid }, x.name))),

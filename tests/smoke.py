@@ -54,6 +54,7 @@ check("AC-4 noindex header", "noindex" in hdr.get("X-Robots-Tag", ""))
 check("no-transform header", "no-transform" in hdr.get("Cache-Control", ""))
 code, body, _ = call("GET", "/robots.txt", anon=True); check("AC-4 robots.txt", code == 200 and b"Disallow: /" in body)
 code, body, _ = call("GET", "/js/app.js", anon=True); check("AC-1 static blocked", code == 401)
+code, body, _ = call("GET", "/fonts/inter.woff2", anon=True); check("gate fonts open", code == 200)
 
 # AC-3 rate limit (separate IP so the main run is unaffected)
 ip = "198.51.100.%d" % (int(time.time()) % 250)

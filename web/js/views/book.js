@@ -1,6 +1,6 @@
 // Book detail (LB-3, LB-5, IM-4, IM-7, IM-9).
 import { api } from '../api.js';
-import { h, clear, cover, avatar, num, duration, dateStr, bytes, modal, confirmBox, toast, segmented } from '../ui.js';
+import { h, clear, cover, avatar, num, duration, dateStr, bytes, modal, confirmBox, toast, segmented, mount } from '../ui.js';
 import { state, go, ensureAdmin } from '../app.js';
 import * as offline from '../offline.js';
 
@@ -39,7 +39,7 @@ export async function render(root, { params }) {
   let timer = null;
   const reload = () => { if (root.isConnected) render(clear(root), { params }); };
   let book;
-  try { book = await api(`/books/${id}`, { quiet: true }); } catch { root.append(h('p', { class: 'empty' }, 'This book is no longer in the library. ', h('a', { href: '#/library' }, 'Back to the library'))); return; }
+  try { book = await api(`/books/${id}`, { quiet: true }); } catch { mount(root, h('p', { class: 'empty' }, 'This book is no longer in the library. ', h('a', { href: '#/library' }, 'Back to the library'))); return; }
   const mine = book.uploaded_by === state.me.id;
   const back = h('a', { href: '#/library', class: 'btn ghost sm' }, '← Library');
 
@@ -62,7 +62,7 @@ export async function render(root, { params }) {
           book.error_code === 'scanned' && h('button', { class: 'btn primary', onClick: async () => { await api(`/books/${id}/ocr`, { method: 'POST' }); reload(); } }, 'Run OCR'),
           (mine || state.admin) && h('button', { class: 'btn danger', onClick: async () => { await api(`/books/${id}`, { method: 'DELETE' }); go('#/library'); } }, 'Remove')));
     }
-    root.append(h('div', { class: 'stack' }, back, body));
+    mount(root, h('div', { class: 'stack' }, back, body));
     return () => clearTimeout(timer);
   }
 
@@ -88,7 +88,7 @@ export async function render(root, { params }) {
   const toc = h('ol', { class: 'toc' }, book.chapters.map((c) => h('li', { class: c.ord === book.chapter_ord && started ? 'current' : '' },
     h('button', { onClick: () => go(`#/read/${id}?c=${c.ord}&w=0`) }, h('span', null, c.title), h('span', { class: 'muted small' }, `${duration(c.word_count / wpm * 60)}`)))));
 
-  root.append(h('div', { class: 'stack' }, back,
+  mount(root, h('div', { class: 'stack' }, back,
     h('div', { class: 'detail' },
       h('div', { class: 'stack' }, cover(book, 'full')),
       h('div', { class: 'stack' },
