@@ -1,7 +1,7 @@
 // Shared library (LB-1..7).
 import { api } from '../api.js';
 import { h, clear, cover, segmented, promptBox, toast, mount } from '../ui.js';
-import { isKept } from '../offline.js';
+import { isKept, findRecoverable, recover, dismissRecovery } from '../offline.js';
 
 const prefs = JSON.parse(localStorage.getItem('read.library') || '{}');
 const save = () => localStorage.setItem('read.library', JSON.stringify(prefs));
@@ -57,7 +57,21 @@ export async function render(root) {
     if (!books.length) grid.append(h('p', { class: 'empty', style: { 'grid-column': '1 / -1' } }, data.books.length ? 'No books match.' : 'The library is empty. Upload the first book.'));
   }
 
-  mount(root, 
+  // Books this device still holds offline but the server lost: offer to put them back.
+  const recoverBox = h('div');
+  if (navigator.onLine) findRecoverable(data.books.map((b) => b.id)).then((items) => {
+    if (!items.length) return;
+    const btn = h('button', { class: 'btn primary', onClick: async () => {
+      btn.disabled = true; let n = 0;
+      for (const it of items) { try { btn.textContent = `Restoring ${it.title}…`; await recover(it); n++; } catch { /* toast shown */ } }
+      toast(`${n} book${n === 1 ? '' : 's'} restored from this device`); render(clear(root));
+    } }, `Restore ${items.length === 1 ? 'it' : `all ${items.length}`}`);
+    recoverBox.append(h('div', { class: 'notice warn stack', style: { 'margin-bottom': '16px', gap: '8px' } },
+      h('b', null, `${items.length} book${items.length === 1 ? ' is' : 's are'} saved on this device but no longer in the library`),
+      h('ul', { style: { margin: 0, 'padding-left': '20px' } }, items.map((it) => h('li', null, it.title, h('span', { class: 'muted small' }, ` · ${it.have} of ${it.total} chapters saved here`)))),
+      h('div', { class: 'row' }, btn, h('button', { class: 'btn', onClick: () => { dismissRecovery(items.map((i) => i.id)); recoverBox.replaceChildren(); } }, 'Not now'))));
+  });
+  mount(root, recoverBox, 
     h('div', { class: 'page-head' }, h('h1', null, 'Library'),
       h('div', { class: 'row' },
         h('button', { class: 'btn', onClick: async () => {

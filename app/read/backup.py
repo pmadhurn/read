@@ -105,6 +105,14 @@ def _loop() -> None:
             if not done and game.now_ist().hour >= 3:
                 run_daily()
                 print(f"[read] backup written for {today}", flush=True)
+                from . import importer
+                conn = importer.connect()
+                try:
+                    purged = importer.purge_old_deleted(conn)
+                finally:
+                    conn.close()
+                if purged:
+                    print(f"[read] purged {purged} books from the bin", flush=True)
         except Exception as e:
             print(f"[read] backup failed: {e}", flush=True)
         time.sleep(1800)

@@ -141,7 +141,7 @@ site through Cloudflare (38 checks), `LOGIC` = `tests/logic.py` (14 checks), `E2
 ## Admin and non-functional
 | ID | Status | Verified |
 |---|---|---|
-| AD-1 delete book, history kept as "deleted book" | done | API |
+| AD-1 delete book, history kept as "deleted book" | done (soft delete: text and files kept 30 days in the admin bin, restore/purge; plus restore-from-device for anything a phone still holds offline) | API, `tests/recovery.mjs` |
 | AD-2 edit any book | done | API |
 | AD-3 rename, reset, delete profile | done | API |
 | AD-4 change passcode and PIN | done | E2E2 |

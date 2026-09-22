@@ -308,6 +308,42 @@ def put_rules(body: dict = Body(...)):
     return {"ok": True}
 
 
+@admin.get("/trash")
+def trash():
+    with tx() as c:
+        rows = q(c, "SELECT b.id, b.title, b.author, b.word_count, b.deleted_at, p.name AS uploader, "
+                    "(b.file_path IS NOT NULL) AS restorable FROM books b LEFT JOIN profiles p ON p.id=b.uploaded_by "
+                    "WHERE b.deleted_at IS NOT NULL ORDER BY b.deleted_at DESC LIMIT 100")
+    return {"books": [{**r, "deleted_at": r["deleted_at"].isoformat(),
+                       "purge_at": (r["deleted_at"] + timedelta(days=30)).isoformat()} for r in rows]}
+
+
+@admin.post("/books/{book_id}/restore")
+def restore(book_id: int):
+    with tx() as c:
+        book = q1(c, "SELECT * FROM books WHERE id=%s AND deleted_at IS NOT NULL", book_id)
+        if not book:
+            raise HTTPException(404, "Not in the bin")
+        if not book["file_path"] or not q1(c, "SELECT 1 FROM chapters WHERE book_id=%s LIMIT 1", book_id):
+            raise HTTPException(410, "This book's text was already purged; upload it again.")
+        ex(c, "UPDATE books SET deleted_at=NULL WHERE id=%s", book_id)
+    return {"ok": True}
+
+
+@admin.delete("/books/{book_id}/purge")
+def purge_now(book_id: int):
+    with tx() as c:
+        if not q1(c, "SELECT 1 FROM books WHERE id=%s AND deleted_at IS NOT NULL", book_id):
+            raise HTTPException(404, "Not in the bin")
+        ex(c, "UPDATE books SET deleted_at = now() - interval '31 days' WHERE id=%s", book_id)
+    conn = importer.connect()
+    try:
+        importer.purge_old_deleted(conn)
+    finally:
+        conn.close()
+    return {"ok": True}
+
+
 @admin.post("/books/{book_id}/reprocess")
 def reprocess(book_id: int):
     with tx() as c:

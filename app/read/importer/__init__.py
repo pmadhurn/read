@@ -156,3 +156,16 @@ def process_book(book_id: int, ocr: bool = False, force: bool = False) -> None:
 
 def remove_files(book_id: int) -> None:
     shutil.rmtree(book_dir(book_id), ignore_errors=True)
+
+
+def purge_old_deleted(conn, days: int = 30) -> int:
+    """Books in the bin longer than `days` lose their text and files for good.
+    The row itself stays so reading history can still say "Deleted book"."""
+    rows = q(conn, "SELECT id FROM books WHERE deleted_at < now() - make_interval(days => %s) AND file_path IS NOT NULL", days)
+    for r in rows:
+        ex(conn, "DELETE FROM chapters WHERE book_id=%s", r["id"])
+        ex(conn, "DELETE FROM reading_progress WHERE book_id=%s", r["id"])
+        ex(conn, "DELETE FROM bookmarks WHERE book_id=%s", r["id"])
+        ex(conn, "UPDATE books SET file_path=NULL, has_cover=false WHERE id=%s", r["id"])
+        remove_files(r["id"])
+    return len(rows)

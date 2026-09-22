@@ -364,23 +364,53 @@ def run_ocr(book_id: int, p: dict = Depends(current_profile)):
 
 @router.delete("/books/{book_id}")
 def delete_book(book_id: int, request: Request, p: dict = Depends(current_profile)):
+    """Soft delete: the book vanishes from the library but its text, files and
+    everyone's progress stay for 30 days in the admin's "Recently deleted" bin (AD-1)."""
     with tx() as c:
         book = get_book(c, book_id)
         failed_own = book["uploaded_by"] == p["id"] and book["status"] in ("error", "duplicate")
         if not (security.admin_ok(request) or failed_own):
             raise HTTPException(403, "Admin PIN required")
         if book["status"] == "ready":
-            # Soft delete: sessions keep pointing here and show as "deleted book" (AD-1).
-            ex(c, "DELETE FROM chapters WHERE book_id=%s", book_id)
-            ex(c, "DELETE FROM reading_progress WHERE book_id=%s", book_id)
-            ex(c, "DELETE FROM bookmarks WHERE book_id=%s", book_id)
-            ex(c, "DELETE FROM favourites WHERE book_id=%s", book_id)
-            ex(c, "DELETE FROM collection_books WHERE book_id=%s", book_id)
-            ex(c, "UPDATE books SET deleted_at=now(), file_path=NULL, has_cover=false WHERE id=%s", book_id)
+            ex(c, "UPDATE books SET deleted_at=now() WHERE id=%s", book_id)
         else:
             ex(c, "DELETE FROM books WHERE id=%s", book_id)
-    importer.remove_files(book_id)
+            importer.remove_files(book_id)
     return {"ok": True}
+
+
+@router.post("/books/recover")
+def recover_book(body: dict = Body(...), p: dict = Depends(current_profile)):
+    """Rebuild a book from the copy a device kept offline (chapters as the reader received them)."""
+    chapters = body.get("chapters") or []
+    if not isinstance(chapters, list) or not chapters or len(chapters) > 2000:
+        raise HTTPException(400, "No chapters to restore.")
+    title = " ".join(str(body.get("title", "")).split())[:300] or "Recovered book"
+    author = " ".join(str(body.get("author", "")).split())[:200]
+    from .importer.textutil import Parsed, Section
+    sections, missing = [], 0
+    for ch in chapters:
+        text = str(ch.get("text") or "")
+        if not text.strip():
+            missing += 1
+            text = "This chapter was not saved on the device that restored the book. Upload the original file to get it back."
+        sections.append(Section(str(ch.get("title") or "")[:200], text.split("\n")))
+    parsed = Parsed(title=title, author=author, sections=sections)
+    if missing:
+        parsed.warnings.append({"code": "partial", "message": f"Restored from a device with {missing} chapter{'s' if missing != 1 else ''} missing. "
+                                                                "Upload the original file to complete it."})
+    raw = "\n\n".join("\n\n".join([s.title, *s.paragraphs]) for s in sections)
+    with tx() as c:
+        dup = q1(c, "SELECT id FROM books WHERE deleted_at IS NULL AND status='ready' AND lower(title)=lower(%s)", title)
+    if dup:
+        return {"book_id": dup["id"], "existing": True}
+    book_id = _store_text_book(p, parsed, raw, None, force=True)
+    pos = body.get("position") or {}
+    if isinstance(pos, dict) and pos.get("chapter_ord") is not None:
+        with tx() as c:
+            book = get_book(c, book_id)
+            _save_position(c, p, book, int(pos.get("chapter_ord", 0)), int(pos.get("word_index", 0)))
+    return {"book_id": book_id}
 
 
 # ---------------------------------------------------------------- collections
@@ -489,7 +519,7 @@ def finish_upload(upload_id: str, p: dict = Depends(current_profile)):
     return {"book_id": book_id}
 
 
-def _store_text_book(p: dict, parsed, raw_text: str, source_url: str | None) -> int:
+def _store_text_book(p: dict, parsed, raw_text: str, source_url: str | None, force: bool = False) -> int:
     with tx() as c:
         book_id = _new_book(c, p, parsed.title or "Untitled", parsed.author, "txt", len(raw_text.encode()), source_url)
         target = importer.book_dir(book_id)
@@ -499,7 +529,7 @@ def _store_text_book(p: dict, parsed, raw_text: str, source_url: str | None) -> 
         ex(c, "UPDATE books SET file_path=%s WHERE id=%s", str(dest), book_id)
     conn = importer.connect()
     try:
-        importer.store_parsed(conn, book_id, parsed, force=False)
+        importer.store_parsed(conn, book_id, parsed, force=force)
     except importer.ImportError_ as e:
         ex(conn, "DELETE FROM books WHERE id=%s", book_id)
         importer.remove_files(book_id)

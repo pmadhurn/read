@@ -1,11 +1,11 @@
 // Admin functions, all behind the PIN (section 9).
 import { api } from '../api.js';
-import { h, clear, num, bytes, confirmBox, promptBox, toast, mount } from '../ui.js';
+import { h, clear, num, bytes, confirmBox, promptBox, toast, mount, dateStr } from '../ui.js';
 import { state, go, ensureAdmin } from '../app.js';
 
 export async function render(root) {
   if (!await ensureAdmin()) { go('#/settings'); return; }
-  const [o, rules] = await Promise.all([api('/admin/overview'), api('/admin/rules')]);
+  const [o, rules, trash] = await Promise.all([api('/admin/overview'), api('/admin/rules'), api('/admin/trash')]);
   const reload = () => render(clear(root));
   const used = o.files_bytes + o.db_bytes;
 
@@ -47,6 +47,14 @@ export async function render(root) {
         h('div', { class: 'bar', style: { 'margin-top': '14px' }, role: 'progressbar', 'aria-label': 'Storage used of plan', 'aria-valuenow': Math.round(used / o.plan_bytes * 100), 'aria-valuemin': 0, 'aria-valuemax': 100 }, h('i', { style: { width: `${Math.min(100, used / o.plan_bytes * 100)}%` } })),
         h('p', { class: 'muted small', style: { 'margin-top': '6px' } }, `${bytes(used)} of the planned ${bytes(o.plan_bytes)}. Books are deleted, edited and re-processed from each book’s page.`)),
       h('section', { class: 'card' }, h('h2', null, 'Profiles'), profiles),
+      h('section', { class: 'card' }, h('h2', null, 'Recently deleted'),
+        h('p', { class: 'muted small', style: { 'margin-bottom': '10px' } }, 'Deleted books keep their text and files for 30 days and can be put back. After that only the reading history remains.'),
+        trash.books.length ? h('div', { class: 'admin-profiles' }, trash.books.map((b) => h('div', { class: 'admin-profile' },
+          h('div', { class: 'grow' }, h('b', null, b.title), h('div', { class: 'muted small' }, `${b.author || 'Unknown author'} · deleted ${dateStr(b.deleted_at)} · ${b.restorable ? `kept until ${dateStr(b.purge_at)}` : 'text already purged'}`)),
+          h('div', { class: 'row nowrap' },
+            b.restorable && h('button', { class: 'btn sm primary', onClick: async () => { await api(`/admin/books/${b.id}/restore`, { method: 'POST' }); toast('Book restored'); reload(); } }, 'Restore'),
+            b.restorable && h('button', { class: 'btn sm danger', onClick: async () => { if (await confirmBox('Delete forever?', `“${b.title}” and its files are removed now instead of in 30 days.`, { danger: true, ok: 'Delete forever' })) { await api(`/admin/books/${b.id}/purge`, { method: 'DELETE' }); reload(); } } }, 'Delete forever')))))
+          : h('p', { class: 'muted' }, 'The bin is empty.')),
       h('section', { class: 'card stack' }, h('h2', null, 'Backups'),
         h('p', { class: 'muted small' }, `A database dump is written every day and kept for 14 days; book files are mirrored alongside. ${o.backups.length ? `Latest: ${o.backups[0].name} (${bytes(o.backups[0].bytes)}), ${o.backups.length} kept.` : 'None written yet.'}`),
         h('div', { class: 'row' }, h('a', { class: 'btn primary', href: '/api/admin/backup/download', download: '' }, '⬇ Download full backup'),

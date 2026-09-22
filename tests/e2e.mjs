@@ -101,7 +101,7 @@ await page.setViewportSize({ width: 3840, height: 2160 }); await page.goto(BASE 
 check('AP-10 4K layout no overflow', (await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)) <= 0);
 
 // cleanup through the API
-await page.evaluate(async () => { const hd = { 'X-Profile-Id': localStorage.getItem('read.profile') }; const l = await (await fetch('/api/books', { headers: hd })).json(); for (const b of l.books) await fetch('/api/books/' + b.id, { method: 'DELETE', headers: hd }); await fetch('/api/admin/profiles/' + hd['X-Profile-Id'], { method: 'DELETE' }); });
+await page.evaluate(async () => { const hd = { 'X-Profile-Id': localStorage.getItem('read.profile') }; const l = await (await fetch('/api/books', { headers: hd })).json(); const mine = Number(hd['X-Profile-Id']); for (const b of l.books) if (b.uploaded_by === mine) await fetch('/api/books/' + b.id, { method: 'DELETE', headers: hd });   // ONLY this run's own uploads await fetch('/api/admin/profiles/' + hd['X-Profile-Id'], { method: 'DELETE' }); });
 check('no page errors', errs.length === 0, errs);
 await browser.close();
 console.log(`\n${results.filter(Boolean).length}/${results.length} passed`); process.exit(results.every(Boolean) ? 0 : 1);

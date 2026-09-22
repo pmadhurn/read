@@ -159,6 +159,7 @@ code, r, _ = call("POST", f"/api/admin/profiles/{profile}/reset"); code, me, _ =
 
 # cleanup
 code, lst, _ = call("GET", "/api/books")
-for b in lst["books"]: call("DELETE", f"/api/books/{b['id']}")
+for b in lst["books"]:
+    if b["uploaded_by"] == profile: call("DELETE", f"/api/books/{b['id']}")   # only this run's uploads
 code, r, _ = call("DELETE", f"/api/admin/profiles/{profile}"); check("AD-3 delete profile", code == 200)
 print(f"\n{sum(results)}/{len(results)} passed"); sys.exit(0 if all(results) else 1)
