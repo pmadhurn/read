@@ -37,6 +37,10 @@ export function readerControls(s, onChange) {
     h('label', { class: 'field' }, h('span', null, 'Speed presets'), presets),
     range('Punctuation pauses', s, 'pause_strength', 0, 2, 0.1, onChange, (v) => (v === 0 ? 'off' : `${Math.round(v * 100)}%`)),
     h('div', { class: 'field' }, h('span', null, 'Words per flash'), segmented([['1', '1'], ['2', '2'], ['3', '3']], String(s.chunk), (v) => { s.chunk = Number(v); onChange(); }, 'Words per flash')),
+    h('div', { class: 'field' }, h('span', null, 'Blink breaks'),
+      segmented([['0', 'Off'], ['5', 'Every 5 s'], ['10', 'Every 10 s'], ['20', 'Every 20 s']], String(s.blink_break ?? 10), (v) => { s.blink_break = Number(v); onChange(); }, 'Blink breaks'),
+      h('span', { class: 'muted small' }, 'A dimmed half-second beat at the next sentence end, so blinks land between sentences. Left arrow, Backspace or a tap on the left edge replays the sentence.')),
+    toggle('Show the last few words below (blink safety net)', s, 'trail', onChange),
     toggle('Guide lines', s, 'guides', onChange), toggle('Show WPM while reading', s, 'show_wpm', onChange),
     toggle('Ease in after play (ramp-up)', s, 'ramp', onChange), toggle('Focus mode: hide controls while playing', s, 'focus', onChange),
     toggle('Sound effects', s, 'sound', onChange));

@@ -9,6 +9,7 @@ const segmenter = 'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granular
 export const graphemes = (s) => (segmenter ? Array.from(segmenter.segment(s), (x) => x.segment) : Array.from(s));
 const WORDY = /[\p{L}\p{N}]/u;
 const SENTENCE_END = /[.!?।॥…]["'”’)\]»]*$/;
+const BREATH_MS = 450;
 const CLAUSE_END = /[,;:—–]["'”’)\]]*$/;
 
 // ORP by word length: 1 → 1st letter, 2–5 → 2nd, 6–9 → 3rd, 10–13 → 4th, 14+ → 5th (RD-2).
@@ -47,7 +48,7 @@ export async function render(root, { params, query }) {
   const chapters = new Map();
   let mode = query.get('mode') === 'scroll' ? 'scroll' : 'rsvp';
   let ch = null, idx = 0, shown = 1, playing = false, timer = null, due = 0, playStart = 0, lastTick = 0;
-  let lastFlush = 0, ranges = [], activeMs = 0, pendingEvents = [], wakeLock = null, panel = null, dead = false;
+  let lastFlush = 0, lastBreath = 0, breathTimer = null, ranges = [], activeMs = 0, pendingEvents = [], wakeLock = null, panel = null, dead = false;
   const timing = []; window.__readerTiming = timing;
 
   async function loadChapter(ord) {
@@ -62,11 +63,12 @@ export async function render(root, { params, query }) {
   const pre = h('span', { class: 'pre' }), pivot = h('span', { class: 'pivot' }), post = h('span', { class: 'post' });
   const word = h('div', { class: 'word', 'aria-hidden': 'true' }, pre, pivot, post);
   const wpmTag = h('div', { class: 'wpm-tag', 'aria-live': 'off' });
-  const rsvp = h('div', { class: 'rsvp' }, h('i', { class: 'rule top' }), h('i', { class: 'rule bot' }), h('i', { class: 'guide top' }), h('i', { class: 'guide bot' }), word);
+  const trail = h('div', { class: 'trail', 'aria-hidden': 'true' });
+  const rsvp = h('div', { class: 'rsvp' }, h('i', { class: 'rule top' }), h('i', { class: 'rule bot' }), h('i', { class: 'guide top' }), h('i', { class: 'guide bot' }), word, trail);
   const context = h('div', { class: 'context', hidden: true });
   const scrollView = h('div', { class: 'scrollmode', hidden: true, tabindex: '0' });
   const debugBox = debug ? h('div', { class: 'debug' }) : null;
-  const stage = h('div', { class: 'stage', tabindex: '0', 'aria-label': 'Reader. Space plays or pauses.' }, rsvp, wpmTag, context, scrollView, debugBox);
+  const stage = h('div', { class: 'stage', tabindex: '0', 'aria-label': 'Reader. Space plays or pauses; Left arrow or Backspace replays the sentence.' }, rsvp, wpmTag, context, scrollView, debugBox);
   const titleEl = h('b'), chapterEl = h('span');
   const barFill = h('i'), leftChapter = h('span'), leftBook = h('span');
   const playBtn = h('button', { class: 'btn primary play', onClick: () => toggle(), 'aria-label': 'Play' }, '▶');
@@ -76,7 +78,7 @@ export async function render(root, { params, query }) {
   const modeBtn = h('button', { class: 'btn sm', onClick: () => setMode(mode === 'rsvp' ? 'scroll' : 'rsvp') });
   const ctl = (label, text, fn) => h('button', { class: 'btn', 'aria-label': label, title: label, onClick: fn }, text);
   const controls = h('div', { class: 'controls' },
-    ctl('Previous chapter', '⏮', () => jumpChapter(-1)), ctl('Previous sentence', '⏪', () => sentence(-1)), ctl('Previous word', '◀', () => step(-1)),
+    ctl('Previous chapter', '⏮', () => jumpChapter(-1)), ctl('Replay sentence', '⏪', () => (playing ? replaySentence() : sentence(-1))), ctl('Previous word', '◀', () => step(-1)),
     playBtn, ctl('Next word', '▶︎', () => step(1)), ctl('Next sentence', '⏩', () => sentence(1)), ctl('Next chapter', '⏭', () => jumpChapter(1)));
   const speedRow = h('div', { class: 'speed' }, ctl('Slower by 25', '−', () => setWpm(s.wpm - 25)), slider, ctl('Faster by 25', '+', () => setWpm(s.wpm + 25)), speedOut);
   const el = h('div', { class: 'reader' },
@@ -100,6 +102,7 @@ export async function render(root, { params, query }) {
     el.style.setProperty('--reader-font', FONTS[s.font]?.css || FONTS.serif.css);
     el.style.setProperty('--orp', s.orp_color);
     rsvp.classList.toggle('no-guides', !s.guides);
+    trail.hidden = !s.trail;
     wpmTag.hidden = !s.show_wpm || mode !== 'rsvp';
     slider.value = s.wpm; speedOut.textContent = `${s.wpm} WPM`; wpmTag.textContent = `${s.wpm} wpm`;
     clear(presets).append(...(s.presets || []).map((p) => h('button', { class: 'btn sm', 'aria-pressed': String(p === s.wpm), onClick: () => setWpm(p) }, String(p))));
@@ -140,6 +143,8 @@ export async function render(root, { params, query }) {
     const len = graphemes(group.join(' ')).length;
     const fit = stage.clientWidth * 0.58 / (len * 0.56);
     word.style.fontSize = fit < s.size ? `${Math.max(14, fit)}px` : '';
+    // Faint trail of the last few words: a blink costs one flash, not the thread.
+    if (s.trail) trail.textContent = ch.words.slice(Math.max(0, idx - 5), idx).join(' ');
   }
 
   function wordDelay(i, count) {
@@ -193,7 +198,18 @@ export async function render(root, { params, query }) {
     // Only words really displayed while playing are reported (section 7).
     const lastRange = ranges[ranges.length - 1];
     if (lastRange && lastRange[1] === idx) lastRange[1] = idx + shown; else ranges.push([idx, idx + shown]);
-    const delay = wordDelay(idx, shown);
+    let delay = wordDelay(idx, shown);
+    rsvp.classList.remove('breath');
+    // Blink break: after every `blink_break` seconds, the next sentence end holds
+    // a dimmed, empty beat long enough for a blink, so blinking happens between
+    // sentences instead of in the middle of one.
+    const secs = Number(s.blink_break) || 0;
+    if (secs && SENTENCE_END.test(ch.words[idx + shown - 1]) && now - lastBreath > secs * 1000) {
+      lastBreath = now;
+      clearTimeout(breathTimer);
+      breathTimer = setTimeout(() => { if (playing) rsvp.classList.add('breath'); }, delay);
+      delay += BREATH_MS;
+    }
     due = (due && now - due < 100 ? due : now) + delay;
     activeMs += now - lastTick; lastTick = now;
     schedule();
@@ -234,7 +250,8 @@ export async function render(root, { params, query }) {
     if (playing || mode !== 'rsvp' || !ch) return;
     if (idx >= ch.words.length - 1 && ch.ord >= book.chapters.length - 1) idx = 0;
     closePanel();
-    playing = true; playStart = lastTick = lastFlush = performance.now(); due = 0;
+    playing = true; playStart = lastTick = lastFlush = lastBreath = performance.now(); due = 0;
+    rsvp.classList.remove('breath');
     context.hidden = true; rsvp.hidden = false;
     playBtn.textContent = '⏸'; playBtn.setAttribute('aria-label', 'Pause');
     if (s.focus) el.classList.add('focus');                                                  // NV-10
@@ -244,7 +261,7 @@ export async function render(root, { params, query }) {
   }
   function pause(extra = {}) {
     if (playing) { activeMs += performance.now() - lastTick; }
-    playing = false; clearTimeout(timer);
+    playing = false; clearTimeout(timer); clearTimeout(breathTimer); rsvp.classList.remove('breath');
     playBtn.textContent = '▶'; playBtn.setAttribute('aria-label', 'Play');
     el.classList.remove('focus');
     wakeLock?.release().catch(() => {}); wakeLock = null;
@@ -279,6 +296,16 @@ export async function render(root, { params, query }) {
   let soon = null;
   const flushSoon = () => { clearTimeout(soon); soon = setTimeout(() => flush(), 800); };
   const step = (d) => moveTo(idx + d * (d > 0 ? shown : 1));
+  // "Missed it": back to the start of this sentence (or the previous one when we
+  // are already at a start), still playing, easing in again so the thread is picked up.
+  function replaySentence() {
+    let i = idx;
+    if (i > 0) { i--; while (i > 0 && !isSentenceStart(i)) i--; }
+    if (idx - i < 3 && i > 0) { i--; while (i > 0 && !isSentenceStart(i)) i--; }
+    playStart = performance.now();
+    moveTo(i);
+    if (!playing) play();
+  }
   const isSentenceStart = (i) => i === 0 || SENTENCE_END.test(ch.words[i - 1]) || ch.para[i] !== ch.para[i - 1];
   function sentence(d) {
     let i = idx;
@@ -401,8 +428,9 @@ export async function render(root, { params, query }) {
     if (k === 'f' || k === 'F') { e.preventDefault(); document.fullscreenElement ? document.exitFullscreen() : el.requestFullscreen?.().catch(() => {}); return; }
     if (mode !== 'rsvp') return;
     if (k === ' ') { if (e.target.tagName === 'BUTTON' && e.target !== playBtn) return; e.preventDefault(); toggle(); }
-    else if (k === 'ArrowLeft') { e.preventDefault(); e.shiftKey ? sentence(-1) : step(-1); }
-    else if (k === 'ArrowRight') { e.preventDefault(); e.shiftKey ? sentence(1) : step(1); }
+    else if (k === 'Backspace' || k === 'r' || k === 'R') { e.preventDefault(); replaySentence(); }
+    else if (k === 'ArrowLeft') { e.preventDefault(); if (playing || e.shiftKey) replaySentence(); else step(-1); }
+    else if (k === 'ArrowRight') { e.preventDefault(); if (playing || e.shiftKey) sentence(1); else step(1); }
     else if (k === 'ArrowUp') { e.preventDefault(); setWpm(s.wpm + 25); }
     else if (k === 'ArrowDown') { e.preventDefault(); setWpm(s.wpm - 25); }
   }
@@ -420,7 +448,7 @@ export async function render(root, { params, query }) {
     const wordEl = e.target.closest('.w');
     if (wordEl) { moveTo(Number(wordEl.dataset.i)); return; }
     const r = stage.getBoundingClientRect(), x = (e.clientX - r.left) / r.width;
-    if (x < 0.22) step(-1); else if (x > 0.78) step(1); else toggle();
+    if (x < 0.22) { if (playing) replaySentence(); else step(-1); } else if (x > 0.78) { if (playing) sentence(1); else step(1); } else toggle();
   });
   const onHide = () => { if (document.hidden && playing) pause(); };                                             // hidden tabs never count
   document.addEventListener('visibilitychange', onHide);
@@ -465,7 +493,7 @@ export async function render(root, { params, query }) {
   return () => {
     dead = true;
     if (playing) { activeMs += performance.now() - lastTick; playing = false; }
-    clearTimeout(timer); clearTimeout(soon); clearTimeout(scrollSave);
+    clearTimeout(timer); clearTimeout(soon); clearTimeout(scrollSave); clearTimeout(breathTimer);
     flush(); stopListening();
     document.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onHide); window.removeEventListener('pagehide', onLeave);
     wakeLock?.release().catch(() => {});
