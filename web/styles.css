@@ -305,6 +305,15 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   white-space: nowrap; overflow: hidden; }
 .rsvp .word { transition: opacity .12s; }
 .rsvp.breath .word { opacity: .12; }
+/* Countdown for the blink break: a line under the word fills over the break's length. */
+.rsvp .breath-bar { position: absolute; left: 30%; right: 30%; top: calc(100% + 1.3em); height: 3px; border-radius: 2px; background: var(--surface-2); opacity: 0; overflow: hidden; }
+.rsvp .breath-bar i { display: block; height: 100%; width: 0; background: var(--muted); border-radius: inherit; }
+.rsvp.breath .breath-bar { opacity: 1; }
+.rsvp.breath .breath-bar i { animation: breath-fill var(--breath-ms, 1000ms) linear forwards; }
+@keyframes breath-fill { from { width: 0; } to { width: 100%; } }
+.rsvp.no-trail .breath-bar { top: calc(100% + .6em); }
+.keys { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: center; font-size: 14px; }
+.keys kbd { display: inline-block; font: 12px/1 var(--font-mono); padding: 4px 7px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; background: var(--surface-2); white-space: nowrap; margin-right: 3px; }
 .rsvp.breath .guide { opacity: .2; }
 @media (prefers-reduced-motion: reduce) { .rsvp .word { transition: none; } }
 .wpm-tag { position: absolute; right: 14px; top: 8px; font-size: 13px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }

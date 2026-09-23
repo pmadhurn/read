@@ -9,7 +9,6 @@ const segmenter = 'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granular
 export const graphemes = (s) => (segmenter ? Array.from(segmenter.segment(s), (x) => x.segment) : Array.from(s));
 const WORDY = /[\p{L}\p{N}]/u;
 const SENTENCE_END = /[.!?।॥…]["'”’)\]»]*$/;
-const BREATH_MS = 450;
 const CLAUSE_END = /[,;:—–]["'”’)\]]*$/;
 
 // ORP by word length: 1 → 1st letter, 2–5 → 2nd, 6–9 → 3rd, 10–13 → 4th, 14+ → 5th (RD-2).
@@ -64,7 +63,8 @@ export async function render(root, { params, query }) {
   const word = h('div', { class: 'word', 'aria-hidden': 'true' }, pre, pivot, post);
   const wpmTag = h('div', { class: 'wpm-tag', 'aria-live': 'off' });
   const trail = h('div', { class: 'trail', 'aria-hidden': 'true' });
-  const rsvp = h('div', { class: 'rsvp' }, h('i', { class: 'rule top' }), h('i', { class: 'rule bot' }), h('i', { class: 'guide top' }), h('i', { class: 'guide bot' }), word, trail);
+  const breathBar = h('div', { class: 'breath-bar', 'aria-hidden': 'true' }, h('i'));
+  const rsvp = h('div', { class: 'rsvp' }, h('i', { class: 'rule top' }), h('i', { class: 'rule bot' }), h('i', { class: 'guide top' }), h('i', { class: 'guide bot' }), word, trail, breathBar);
   const context = h('div', { class: 'context', hidden: true });
   const scrollView = h('div', { class: 'scrollmode', hidden: true, tabindex: '0' });
   const debugBox = debug ? h('div', { class: 'debug' }) : null;
@@ -102,7 +102,7 @@ export async function render(root, { params, query }) {
     el.style.setProperty('--reader-font', FONTS[s.font]?.css || FONTS.serif.css);
     el.style.setProperty('--orp', s.orp_color);
     rsvp.classList.toggle('no-guides', !s.guides);
-    trail.hidden = !s.trail;
+    trail.hidden = !s.trail; rsvp.classList.toggle('no-trail', !s.trail);
     wpmTag.hidden = !s.show_wpm || mode !== 'rsvp';
     slider.value = s.wpm; speedOut.textContent = `${s.wpm} WPM`; wpmTag.textContent = `${s.wpm} wpm`;
     clear(presets).append(...(s.presets || []).map((p) => h('button', { class: 'btn sm', 'aria-pressed': String(p === s.wpm), onClick: () => setWpm(p) }, String(p))));
@@ -192,6 +192,7 @@ export async function render(root, { params, query }) {
   function schedule() {
     timer = setTimeout(spin, Math.max(0, due - performance.now() - 18));
   }
+  const breathMs = () => Math.max(300, Math.min(3000, Number(s.blink_len) || 1000));
   function present() {
     const now = performance.now();
     show();
@@ -207,8 +208,10 @@ export async function render(root, { params, query }) {
     if (secs && SENTENCE_END.test(ch.words[idx + shown - 1]) && now - lastBreath > secs * 1000) {
       lastBreath = now;
       clearTimeout(breathTimer);
+      const len = breathMs();
+      breathBar.style.setProperty('--breath-ms', `${len}ms`);
       breathTimer = setTimeout(() => { if (playing) rsvp.classList.add('breath'); }, delay);
-      delay += BREATH_MS;
+      delay += len;
     }
     due = (due && now - due < 100 ? due : now) + delay;
     activeMs += now - lastTick; lastTick = now;
@@ -431,8 +434,14 @@ export async function render(root, { params, query }) {
     else if (k === 'Backspace' || k === 'r' || k === 'R') { e.preventDefault(); replaySentence(); }
     else if (k === 'ArrowLeft') { e.preventDefault(); if (playing || e.shiftKey) replaySentence(); else step(-1); }
     else if (k === 'ArrowRight') { e.preventDefault(); if (playing || e.shiftKey) sentence(1); else step(1); }
-    else if (k === 'ArrowUp') { e.preventDefault(); setWpm(s.wpm + 25); }
-    else if (k === 'ArrowDown') { e.preventDefault(); setWpm(s.wpm - 25); }
+    else if (k === 'ArrowUp' || k === '+' || k === '=' || k === ']') { e.preventDefault(); setWpm(s.wpm + 25); }
+    else if (k === 'ArrowDown' || k === '-' || k === '_' || k === '[') { e.preventDefault(); setWpm(s.wpm - 25); }
+    else if (k === 'Home') { e.preventDefault(); jumpChapter(-1); }
+    else if (k === 'End') { e.preventDefault(); jumpChapter(1); }
+    else if (k === 'b' || k === 'B') { e.preventDefault(); addBookmark(); }
+    else if (k === 't' || k === 'T') { e.preventDefault(); openPanel('toc'); }
+    else if (k === 'n' || k === 'N') { e.preventDefault(); setMode('scroll'); }
+    else if (k === '?') { e.preventDefault(); openPanel('settings'); }
   }
   document.addEventListener('keydown', onKey);
 

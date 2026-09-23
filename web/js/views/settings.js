@@ -22,6 +22,14 @@ const range = (label, s, key, min, max, step, onChange, fmt = (v) => v) => {
 const toggle = (label, s, key, onChange) => h('label', { class: 'switch' }, label,
   h('input', { type: 'checkbox', checked: !!s[key], onChange: (e) => { s[key] = e.target.checked; onChange(); } }));
 
+export const KEYS = [
+  ['Space', 'Play / pause'], ['← or Backspace or R', 'Replay the current sentence (while playing); previous word when paused'],
+  ['→', 'Next sentence (while playing); next word when paused'], ['Shift+← / Shift+→', 'Previous / next sentence'],
+  ['↑ or + or ]', 'Faster by 25 WPM'], ['↓ or − or [', 'Slower by 25 WPM'], ['Home / End', 'Previous / next chapter'],
+  ['B', 'Add a bookmark'], ['T', 'Contents and bookmarks'], ['N', 'Normal reading mode'], ['F', 'Full screen'], ['?', 'Reader settings'], ['Esc', 'Close panel, pause, or leave the reader'],
+];
+const keyList = () => h('div', { class: 'keys' }, KEYS.flatMap(([k, what]) => [h('span', null, k.split(' or ').map((x) => h('kbd', null, x))), h('span', null, what)]));
+
 // Shared by the settings page and the reader's side panel; mutates `s` and calls onChange.
 export function readerControls(s, onChange) {
   const presets = h('input', { type: 'text', value: (s.presets || []).join(', '), inputmode: 'numeric', onChange: (e) => {
@@ -39,11 +47,19 @@ export function readerControls(s, onChange) {
     h('div', { class: 'field' }, h('span', null, 'Words per flash'), segmented([['1', '1'], ['2', '2'], ['3', '3']], String(s.chunk), (v) => { s.chunk = Number(v); onChange(); }, 'Words per flash')),
     h('div', { class: 'field' }, h('span', null, 'Blink breaks'),
       segmented([['0', 'Off'], ['5', 'Every 5 s'], ['10', 'Every 10 s'], ['20', 'Every 20 s']], String(s.blink_break ?? 10), (v) => { s.blink_break = Number(v); onChange(); }, 'Blink breaks'),
-      h('span', { class: 'muted small' }, 'A dimmed half-second beat at the next sentence end, so blinks land between sentences. Left arrow, Backspace or a tap on the left edge replays the sentence.')),
+      h('span', { class: 'muted small' }, 'At the next sentence end the word dims and a line fills up for the length of the break, so blinks land between sentences.')),
+    range('Blink break length', s, 'blink_len', 300, 3000, 100, onChange, (v) => `${(v / 1000).toFixed(1)} s`),
     toggle('Show the last few words below (blink safety net)', s, 'trail', onChange),
     toggle('Guide lines', s, 'guides', onChange), toggle('Show WPM while reading', s, 'show_wpm', onChange),
     toggle('Ease in after play (ramp-up)', s, 'ramp', onChange), toggle('Focus mode: hide controls while playing', s, 'focus', onChange),
-    toggle('Sound effects', s, 'sound', onChange));
+    toggle('Sound effects', s, 'sound', onChange),
+    h('div', { class: 'field' }, h('span', null, 'Keyboard shortcuts in the reader'), keyList()),
+    h('div', { class: 'field' }, h('span', null, 'Touch'), h('div', { class: 'keys' },
+      h('span', null, 'Tap centre'), h('span', null, 'Play / pause'),
+      h('span', null, 'Tap left edge'), h('span', null, 'Replay the sentence (previous word when paused)'),
+      h('span', null, 'Tap right edge'), h('span', null, 'Next sentence (next word when paused)'),
+      h('span', null, 'Swipe up / down'), h('span', null, 'Faster / slower by 25 WPM'),
+      h('span', null, 'Tap a word when paused'), h('span', null, 'Jump there'))));
 }
 
 // Live preview of font, size and colours (AP-7).

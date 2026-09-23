@@ -24,7 +24,7 @@ _COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 DEFAULT_PROFILE_SETTINGS = {
     "theme": "dark", "font": "serif", "size": 48, "orp_color": "#ff4d4d", "guides": True, "show_wpm": True,
     "wpm": 300, "pause_strength": 1.0, "pause_comma": 1.5, "pause_sentence": 2.0, "pause_paragraph": 3.0,
-    "chunk": 1, "ramp": True, "presets": [250, 350, 500], "sound": False, "focus": True, "trail": True, "blink_break": 10,
+    "chunk": 1, "ramp": True, "presets": [250, 350, 500], "sound": False, "focus": True, "trail": True, "blink_break": 10, "blink_len": 1000,
 }
 
 
